@@ -276,7 +276,7 @@ import type { GlobModules, RouteConfigNode } from 'modules-page-routing';
 
 ## Real-world Example
 
-See complete examples at: https://github.com/sonicname/modules-page-routing/tree/main/examples
+See complete examples at: <https://github.com/sonicname/modules-page-routing/tree/development/example>
 
 ## License
 
@@ -288,6 +288,6 @@ Contributions are welcome! Please feel free to submit a Pull Request or create a
 
 ## Repository
 
-https://github.com/sonicname/modules-page-routing
+<https://github.com/sonicname/modules-page-routing>
 
 If you encounter any issues or have questions, please create an issue on the GitHub repository.
