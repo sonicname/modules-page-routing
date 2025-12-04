@@ -1,4 +1,10 @@
-import React, { createElement, lazy, Suspense } from 'react';
+import React, {
+  ComponentType,
+  createElement,
+  lazy,
+  ReactNode,
+  Suspense,
+} from 'react';
 import type { RouteObject } from 'react-router';
 
 /**
@@ -13,8 +19,8 @@ export type RouteConfigNode = {
 };
 
 interface RouteModule {
-  default: React.ComponentType;
-  Layout?: React.ComponentType<{ children: React.ReactNode }>;
+  default: ComponentType;
+  Layout?: ComponentType<{ children: ReactNode }>;
 }
 
 export type GlobModules = Record<string, () => Promise<RouteModule>>;
@@ -271,14 +277,8 @@ function sortRoutes(MODULES: GlobModules): string[] {
     })
     .sort((a, b) => {
       // Priority: root index > other index > static > dynamic > catch-all
-      const aIsRootIndex =
-        a === './pages/index.tsx' ||
-        a === '/pages/index.tsx' ||
-        a === './modules/index.tsx';
-      const bIsRootIndex =
-        b === './pages/index.tsx' ||
-        b === '/pages/index.tsx' ||
-        b === './modules/index.tsx';
+      const aIsRootIndex = a === './modules/index.tsx';
+      const bIsRootIndex = b === './modules/index.tsx';
       const aIsIndex = a.endsWith('/index.tsx');
       const bIsIndex = b.endsWith('/index.tsx');
       const aIsCatchAll = a.includes('[...');
@@ -301,10 +301,7 @@ function sortRoutes(MODULES: GlobModules): string[] {
       // Extract clean paths for more accurate segment comparison
       const stripPrefix = (p: string) =>
         p
-          .replace(/^\.\//, '')
-          .replace(/^\/src\/pages\//, '')
-          .replace(/^\/src\/modules\/[^/]+\/pages\//, '')
-          .replace(/^\/pages\//, '')
+          .replace(/^\.\//g, '')
           .replace(/^\/modules\/[^/]+\/pages\//, '')
           .replace(/\.tsx$/, '');
       const aPath = stripPrefix(a);
@@ -334,9 +331,7 @@ function sortRoutes(MODULES: GlobModules): string[] {
 
 /**
  * Converts a file path to a valid route path.
- * Supports two roots:
- * - /src/pages/...  (legacy)
- * - /src/modules/<module>/pages/...  -> becomes /<module>/... in URL
+ * Modules pattern: /modules/<module>/pages/...  -> becomes /<module>/... in URL
  */
 function convertToRoutePath(route: string): string {
   // Helper to convert segment patterns
@@ -349,9 +344,9 @@ function convertToRoutePath(route: string): string {
       .replace(/\[\.\.\.(.+?)\]/g, '*')
       .replace(/\[([^.].*?)\]/g, ':$1');
 
-  // Modules pattern: /src/modules/<module>/pages/...
+  // Modules pattern: /modules/<module>/pages/...
   const modMatch = route
-    .replace(/^\.\//, '/')
+    .replace(/^\.\//g, '/')
     .match(/^\/modules\/([^/]+)\/pages\/(.*)\.(t|j)sx$/);
   if (modMatch) {
     const moduleName = modMatch[1];
@@ -364,16 +359,6 @@ function convertToRoutePath(route: string): string {
     // ensure leading slash for rest
     if (!rest.startsWith('/')) rest = '/' + rest;
     return `/${moduleName}${rest}`;
-  }
-
-  // Legacy /src/pages/... support
-  const legacyMatch = route.match(/^\/src\/pages\/(.*)\.tsx$/);
-  if (legacyMatch) {
-    let rest = legacyMatch[1];
-    rest = convertSegments(rest);
-    if (!rest || rest === '') return '/';
-    if (!rest.startsWith('/')) rest = '/' + rest;
-    return rest;
   }
 
   // Fallback: remove extension and ensure leading slash
@@ -392,18 +377,13 @@ function collectLayouts(
   const layoutRoutes = new Map<string, React.ComponentType>();
 
   Object.keys(MODULES).forEach((route) => {
-    // Match layout files in either /src/pages or /src/modules/<module>/pages
+    // Match layout files in /modules/<module>/pages
     if (route.endsWith('/_layout.tsx')) {
       let layoutKey: string | undefined;
 
-      // Root layout in legacy /src/pages/layout.tsx
-      if (route === '/src/pages/_layout.tsx') {
-        layoutKey = '';
-      }
-
-      // Module layouts: /src/modules/<module>/pages/.../layout.tsx
+      // Module layouts: /modules/<module>/pages/.../layout.tsx
       const modMatch = route
-        .replace(/^\.\//, '/')
+        .replace(/^\.\//g, '/')
         .match(/^\/modules\/([^/]+)\/pages\/(.*)\/(?:_?layout)\.tsx$/);
       if (modMatch) {
         const moduleName = modMatch[1];
@@ -412,23 +392,12 @@ function collectLayouts(
         layoutKey = rest ? `${moduleName}/${rest}` : moduleName;
       }
 
-      // Nested module root layout like /src/modules/<module>/pages/_layout.tsx
+      // Nested module root layout like /modules/<module>/pages/_layout.tsx
       const modRootMatch = route
-        .replace(/^\.\//, '/')
+        .replace(/^\.\//g, '/')
         .match(/^\/modules\/([^/]+)\/pages\/(?:_?layout)\.tsx$/);
       if (modRootMatch) {
         layoutKey = modRootMatch[1];
-      }
-
-      // Nested legacy layouts under /src/pages/.../layout.tsx
-      if (
-        !layoutKey &&
-        route.startsWith('/src/pages/') &&
-        route.endsWith('/_layout.tsx')
-      ) {
-        layoutKey = route
-          .replace(/^\/src\/pages\//, '')
-          .replace(/\/(?:_?layout)\.tsx$/, '');
       }
 
       if (layoutKey !== undefined) {
@@ -622,14 +591,6 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
     } else if (modRootMatch) {
       const moduleName = modRootMatch[1];
       basePath = `/${moduleName}/*`;
-    } else {
-      // Legacy /src/pages
-      const p = filePath
-        .replace(/^\/src\/pages\//, '')
-        .replace(/_?not-found\.tsx$/, '')
-        .replace(/\([^)]+\)\//g, '')
-        .replace(/\/$/, '');
-      basePath = p ? `/${p}/*` : '/*';
     }
 
     const layoutKeyForNotFound = basePath
