@@ -39,9 +39,10 @@ export function toUrlSegment(seg: string): string {
   if (seg.startsWith('_') && !seg.match(/^_(layout|not-found|error|index)$/)) {
     segment = seg.slice(1);
   }
-  // catch-all: [...rest] -> :rest* (check BEFORE dynamic to avoid false match)
+  // catch-all: [...rest] -> * (check BEFORE dynamic to avoid false match)
+  // React Router requires * to follow / in patterns
   const splat = segment.match(/^\[\.\.\.(.+?)\]$/);
-  if (splat) return `:${splat[1]}*`;
+  if (splat) return '*';
   // dynamic segment: [id] -> :id
   const dyn = segment.match(/^\[(.+?)\]$/);
   if (dyn) return `:${dyn[1]}`;

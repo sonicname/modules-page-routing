@@ -33,12 +33,12 @@ describe('toUrlSegment', () => {
   });
 
   describe('catch-all segments', () => {
-    it('should convert [...rest] to :rest*', () => {
-      expect(toUrlSegment('[...rest]')).toBe(':rest*');
+    it('should convert [...rest] to *', () => {
+      expect(toUrlSegment('[...rest]')).toBe('*');
     });
 
-    it('should convert [...path] to :path*', () => {
-      expect(toUrlSegment('[...path]')).toBe(':path*');
+    it('should convert [...path] to *', () => {
+      expect(toUrlSegment('[...path]')).toBe('*');
     });
   });
 
