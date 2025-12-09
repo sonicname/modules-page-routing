@@ -127,7 +127,13 @@ export default routes satisfies RouteConfig;
   - `modules/docs/pages/[...path].tsx` → `/docs/*`
 
 - **`_not-found.tsx`** → 404 page for the module
+
   - `modules/admin/pages/_not-found.tsx` → 404 for `/admin/*`
+
+- **`_<folder>` or `_<file>.tsx`** → Parentless route (escapes parent layout)
+  - `modules/auth/pages/_login/index.tsx` → `/auth/login` (without auth layout)
+  - `modules/admin/pages/_fullscreen-editor.tsx` → `/admin/fullscreen-editor` (without admin layout)
+  - Useful for modal pages, login overlays, or pages that need a different layout
 
 #### API Routes
 
@@ -233,6 +239,7 @@ Builds React Router v7 RouteConfig from Vite `import.meta.glob()`.
 - `[param]` → Dynamic parameter
 - `[...rest]` → Catch-all route
 - `_not-found.tsx` → 404 handler
+- `_<folder>` or `_<file>.tsx` → Parentless route (escapes parent layout)
 
 ### `buildApiRouteConfig(globModules: Record<string, unknown>): RouteConfigNode[]`
 
@@ -251,6 +258,7 @@ Builds API route config from Vite `import.meta.glob()`.
 - `api/v1/products.search.ts` → `/api/v1/products/search`
 - `.` in filename → additional path segment
 - `$` prefix → dynamic parameter
+- `_` prefix in folder/filename → Parentless route (stripped from URL)
 
 ## TypeScript Support
 

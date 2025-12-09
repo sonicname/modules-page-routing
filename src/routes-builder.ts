@@ -29,13 +29,18 @@ export type GlobModules = Record<string, () => Promise<RouteModule>>;
  * Helpers for converting file-system segments to URL path segments
  */
 function toUrlSegment(seg: string): string {
+  // Strip parentless prefix for URL generation
+  let segment = seg;
+  if (seg.startsWith('_') && !seg.match(/^_(layout|not-found|error|index)$/)) {
+    segment = seg.slice(1);
+  }
   // dynamic segment: [id] -> :id
-  const dyn = seg.match(/^\[(.+?)\]$/);
+  const dyn = segment.match(/^\[(.+?)\]$/);
   if (dyn) return `:${dyn[1]}`;
   // catch-all: [...rest] -> * or :rest*
-  const splat = seg.match(/^\[\.\.\.(.+?)\]$/);
+  const splat = segment.match(/^\[\.\.\.(.+?)\]$/);
   if (splat) return `:${splat[1]}*`;
-  return seg;
+  return segment;
 }
 
 function isLayoutFile(file: string) {
@@ -50,6 +55,54 @@ function isNotFoundFile(file: string) {
     /(?:^|\/)_(?:not-found)\.(t|j)sx?$/.test(file) ||
     /(?:^|\/)not-found\.(t|j)sx?$/.test(file)
   );
+}
+
+/**
+ * Check if a path segment is a parentless segment (starts with _ but not a special file)
+ * Parentless routes escape from their parent layouts
+ */
+function isParentlessSegment(segment: string): boolean {
+  // Skip special files like _layout, _not-found, _error
+  const specialFiles = ['_layout', '_not-found', '_error', '_index'];
+  const baseName = segment.replace(/\.(t|j)sx?$/, '');
+  if (specialFiles.includes(baseName)) return false;
+  // Check if segment starts with _ (parentless indicator)
+  return segment.startsWith('_');
+}
+
+/**
+ * Remove the parentless prefix from a segment for URL path generation
+ */
+function stripParentlessPrefix(segment: string): string {
+  if (
+    segment.startsWith('_') &&
+    !isLayoutFile(segment) &&
+    !isNotFoundFile(segment)
+  ) {
+    return segment.slice(1);
+  }
+  return segment;
+}
+
+/**
+ * Check if a full path contains any parentless segment
+ */
+function hasParentlessSegment(path: string): boolean {
+  const segments = path.split('/');
+  return segments.some((seg) => isParentlessSegment(seg));
+}
+
+/**
+ * Get the parentless root segment from a path (first parentless segment found)
+ */
+function getParentlessRoot(path: string): string | null {
+  const segments = path.split('/');
+  for (let i = 0; i < segments.length; i++) {
+    if (isParentlessSegment(segments[i])) {
+      return segments.slice(0, i + 1).join('/');
+    }
+  }
+  return null;
 }
 
 /**
@@ -526,7 +579,22 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
   Array.from(layoutRoutes.keys()).forEach((key) => ensureNode(key));
 
   // Utility to find the most specific layout key for a path
-  const findParentLayoutKey = (fullPath: string): string | null => {
+  // Returns null for parentless routes (routes with _ prefix segments)
+  const findParentLayoutKey = (
+    fullPath: string,
+    originalRoute: string,
+  ): string | null => {
+    // Check if the original file path contains a parentless segment
+    // Extract the path after /pages/ from the original route
+    const pagesMatch = originalRoute.match(/\/pages\/(.+)$/);
+    if (pagesMatch) {
+      const pathAfterPages = pagesMatch[1];
+      if (hasParentlessSegment(pathAfterPages)) {
+        // Parentless route - no parent layout
+        return null;
+      }
+    }
+
     const keys = getLayoutPaths(fullPath);
     for (const k of keys) {
       if (layoutRoutes.has(k)) return k;
@@ -541,7 +609,11 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
     const Component = lazy(MODULES[route]);
     const element = suspenseWrap(Component);
 
-    const parentKey = findParentLayoutKey(fullPath);
+    // Check if this is a parentless route
+    const pagesMatch = route.match(/\/pages\/(.+)$/);
+    const isParentless = pagesMatch && hasParentlessSegment(pagesMatch[1]);
+
+    const parentKey = findParentLayoutKey(fullPath, route);
 
     // Compute relative path from parentKey
     let relPath = fullPath.slice(1); // remove leading '/'
@@ -552,7 +624,10 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
       }
     }
 
-    const pageRoute: RouteObject = relPath
+    // For parentless routes, use the full path (they're at top level)
+    const pageRoute: RouteObject = isParentless
+      ? { path: fullPath, element }
+      : relPath
       ? { path: relPath, element }
       : { index: true, element };
 
@@ -561,7 +636,7 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
       parentNode.children = parentNode.children ?? [];
       parentNode.children.push(pageRoute);
     } else {
-      // No layout parent, attach directly to top-level
+      // No layout parent (or parentless route), attach directly to top-level
       attachRoute(null, nodes, topLevel, pageRoute);
     }
   });

@@ -36,12 +36,21 @@ export function buildApiRouteConfig(
     const last = parts.pop()!; // filename without extension
 
     // filename can encode multiple segments with '.'
+    // Also strip parentless prefix (_) from segments for URL generation
     const fileSegments = last
       .split('.')
       .filter(Boolean)
-      .map((seg) => (seg.startsWith('$') ? `:${seg.slice(1)}` : seg));
+      .map((seg) => {
+        // Strip parentless prefix if present
+        let s = seg.startsWith('_') ? seg.slice(1) : seg;
+        // Convert $ to dynamic param
+        return s.startsWith('$') ? `:${s.slice(1)}` : s;
+      });
 
-    const path = [...parts, ...fileSegments].join('/');
+    // Also strip parentless prefix from directory parts
+    const cleanParts = parts.map((p) => (p.startsWith('_') ? p.slice(1) : p));
+
+    const path = [...cleanParts, ...fileSegments].join('/');
 
     // Skip if path is empty (shouldn't happen for api handlers)
     if (!path) continue;
