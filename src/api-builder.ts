@@ -48,7 +48,10 @@ export function buildApiRouteConfig(
       });
 
     // Also strip parentless prefix from directory parts
-    const cleanParts = parts.map((p) => (p.startsWith('_') ? p.slice(1) : p));
+    // Also remove route groups (folders in parentheses like (admin))
+    const cleanParts = parts
+      .filter((p) => !/^\([^)]+\)$/.test(p)) // remove route groups entirely
+      .map((p) => (p.startsWith('_') ? p.slice(1) : p)); // strip parentless prefix
 
     const path = [...cleanParts, ...fileSegments].join('/');
 

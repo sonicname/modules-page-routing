@@ -30,7 +30,7 @@
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
     "prepublishOnly": "npm run build",
-    "test": "echo \"No tests yet\" && exit 0"
+    "test": "vitest run"
   },
   "keywords": [
     "react-router",
@@ -51,7 +51,8 @@
     "react": "^19.1.1",
     "react-router": "^7.9.2",
     "rimraf": "^5.0.5",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.15"
   },
   "repository": {
     "type": "git",

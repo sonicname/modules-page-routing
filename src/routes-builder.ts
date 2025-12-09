@@ -28,29 +28,43 @@ export type GlobModules = Record<string, () => Promise<RouteModule>>;
 /**
  * Helpers for converting file-system segments to URL path segments
  */
-function toUrlSegment(seg: string): string {
+export function toUrlSegment(seg: string): string {
+  // Route group: (name) -> skip entirely (returns empty string)
+  // Route groups are organizational only, they don't create URL segments
+  if (isRouteGroup(seg)) {
+    return '';
+  }
   // Strip parentless prefix for URL generation
   let segment = seg;
   if (seg.startsWith('_') && !seg.match(/^_(layout|not-found|error|index)$/)) {
     segment = seg.slice(1);
   }
+  // catch-all: [...rest] -> :rest* (check BEFORE dynamic to avoid false match)
+  const splat = segment.match(/^\[\.\.\.(.+?)\]$/);
+  if (splat) return `:${splat[1]}*`;
   // dynamic segment: [id] -> :id
   const dyn = segment.match(/^\[(.+?)\]$/);
   if (dyn) return `:${dyn[1]}`;
-  // catch-all: [...rest] -> * or :rest*
-  const splat = segment.match(/^\[\.\.\.(.+?)\]$/);
-  if (splat) return `:${splat[1]}*`;
   return segment;
 }
 
-function isLayoutFile(file: string) {
+/**
+ * Check if a segment is a route group (wrapped in parentheses)
+ * Route groups are for organization only and don't create URL segments
+ * Example: (dashboard), (auth), (marketing)
+ */
+export function isRouteGroup(segment: string): boolean {
+  return /^\([^)]+\)$/.test(segment);
+}
+
+export function isLayoutFile(file: string) {
   return (
     /(?:^|\/)_(?:layout)\.(t|j)sx?$/.test(file) ||
     /(?:^|\/)layout\.(t|j)sx?$/.test(file)
   );
 }
 
-function isNotFoundFile(file: string) {
+export function isNotFoundFile(file: string) {
   return (
     /(?:^|\/)_(?:not-found)\.(t|j)sx?$/.test(file) ||
     /(?:^|\/)not-found\.(t|j)sx?$/.test(file)
@@ -61,7 +75,7 @@ function isNotFoundFile(file: string) {
  * Check if a path segment is a parentless segment (starts with _ but not a special file)
  * Parentless routes escape from their parent layouts
  */
-function isParentlessSegment(segment: string): boolean {
+export function isParentlessSegment(segment: string): boolean {
   // Skip special files like _layout, _not-found, _error
   const specialFiles = ['_layout', '_not-found', '_error', '_index'];
   const baseName = segment.replace(/\.(t|j)sx?$/, '');
@@ -71,38 +85,11 @@ function isParentlessSegment(segment: string): boolean {
 }
 
 /**
- * Remove the parentless prefix from a segment for URL path generation
- */
-function stripParentlessPrefix(segment: string): string {
-  if (
-    segment.startsWith('_') &&
-    !isLayoutFile(segment) &&
-    !isNotFoundFile(segment)
-  ) {
-    return segment.slice(1);
-  }
-  return segment;
-}
-
-/**
  * Check if a full path contains any parentless segment
  */
-function hasParentlessSegment(path: string): boolean {
+export function hasParentlessSegment(path: string): boolean {
   const segments = path.split('/');
   return segments.some((seg) => isParentlessSegment(seg));
-}
-
-/**
- * Get the parentless root segment from a path (first parentless segment found)
- */
-function getParentlessRoot(path: string): string | null {
-  const segments = path.split('/');
-  for (let i = 0; i < segments.length; i++) {
-    if (isParentlessSegment(segments[i])) {
-      return segments.slice(0, i + 1).join('/');
-    }
-  }
-  return null;
 }
 
 /**
@@ -390,7 +377,9 @@ function convertToRoutePath(route: string): string {
   // Helper to convert segment patterns
   const convertSegments = (p: string) =>
     p
-      .replace(/\(.+?\)\//g, '') // remove group notation
+      .replace(/\([^)]+\)\/?/g, '') // remove route group notation (with or without trailing slash)
+      .replace(/\/_([^/]+)/g, '/$1') // strip parentless prefix from path segments
+      .replace(/^_([^/]+)/, '$1') // strip parentless prefix at start
       .replace(/\/index$/, '') // remove trailing /index
       .replace(/^index$/, '')
       .replace(/\.(tsx|jsx)$/, '')

@@ -131,9 +131,27 @@ export default routes satisfies RouteConfig;
   - `modules/admin/pages/_not-found.tsx` → 404 for `/admin/*`
 
 - **`_<folder>` or `_<file>.tsx`** → Parentless route (escapes parent layout)
+
   - `modules/auth/pages/_login/index.tsx` → `/auth/login` (without auth layout)
   - `modules/admin/pages/_fullscreen-editor.tsx` → `/admin/fullscreen-editor` (without admin layout)
   - Useful for modal pages, login overlays, or pages that need a different layout
+
+- **`(group)`** → Route group (organizational only, no URL segment)
+  - `modules/admin/pages/(dashboard)/overview.tsx` → `/admin/overview`
+  - `modules/admin/pages/(settings)/profile.tsx` → `/admin/profile`
+  - Supports `_layout.tsx` inside route groups for shared layouts within the group
+  - Example structure:
+    ```
+    admin/pages/
+    ├── (dashboard)/
+    │   ├── _layout.tsx    # Layout for dashboard group
+    │   ├── index.tsx      # /admin
+    │   └── analytics.tsx  # /admin/analytics
+    └── (settings)/
+        ├── _layout.tsx    # Layout for settings group
+        ├── profile.tsx    # /admin/profile
+        └── security.tsx   # /admin/security
+    ```
 
 #### API Routes
 
