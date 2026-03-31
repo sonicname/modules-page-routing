@@ -7,7 +7,7 @@ Utility library for React Router v7 - Automatically build routes from file-syste
 - 🎯 **Type-safe** - Full TypeScript support with comprehensive type definitions
 - 📁 **File-based routing** - Automatically build routes from directory structure
 - 🧩 **Module-based** - Organize code by independent modules
-- 🔌 **API routes** - Support for building API handlers
+- 🔌 **API routes** - Support for building API handlers (global and module-scoped)
 - 📦 **ESM & CommonJS** - Dual module support for maximum compatibility
 - ⚡ **Zero dependencies** - Only peer dependencies on React and React Router v7
 
@@ -49,6 +49,9 @@ app/
 │   │       │   └── [id].tsx      # /admin/users/:id
 │   │       └── settings.tsx      # /admin/settings
 │   └── shop/
+│       ├── api/
+│       │   ├── products.ts            # API: /api/shop/products
+│       │   └── products.$id.ts        # API: /api/shop/products/:id
 │       └── pages/
 │           ├── index.tsx          # /shop
 │           ├── products/
@@ -73,16 +76,22 @@ import {
   type RouteConfig,
 } from '@react-router/dev/routes';
 import { flatRoutes } from '@react-router/fs-routes';
-import { buildApiRouteConfig } from 'modules-page-routing';
-import { buildGlobRouteConfig, type GlobModules } from 'modules-page-routing';
+import {
+  buildApiRouteConfig,
+  buildApiModuleRouteConfig,
+  buildGlobRouteConfig,
+  type GlobModules,
+} from 'modules-page-routing';
 
-// Import all files in modules/*/pages/* and api/**/*
+// Import all files in modules/*/pages/*, modules/*/api/*, and api/**/*
 const globTree = import.meta.glob('./modules/**/pages/**/*.{tsx,ts}');
 const apiTree = import.meta.glob('./api/**/*.ts');
+const apiModuleTree = import.meta.glob('./modules/**/api/**/*.ts');
 
 // Build React Router v7 RouteConfig from glob
 const moduleRoutes = buildGlobRouteConfig(globTree as GlobModules);
 const apiRoutes = buildApiRouteConfig(apiTree);
+const apiModuleRoutes = buildApiModuleRouteConfig(apiModuleTree);
 
 const routes = [
   // All module pages are nested under a shared layout
@@ -91,8 +100,8 @@ const routes = [
     ...moduleRoutes,
   ]),
 
-  // API routes with /api prefix
-  ...prefix('api', apiRoutes),
+  // API routes: global (/api/v1/...) + module-scoped (/api/<module>/...)
+  ...prefix('api', [...apiRoutes, ...apiModuleRoutes]),
 
   // Routes from app/routes/** (optional - if you still want traditional file-based routing)
   ...(await flatRoutes({
@@ -169,6 +178,17 @@ API routes use a different convention:
 - **`filename.$param.ts`** → Dynamic parameter (using `$` prefix)
   - `api/v1/users.$id.ts` → `/api/v1/users/:id`
   - `api/v1/posts.$slug.comments.ts` → `/api/v1/posts/:slug/comments`
+
+#### Module-scoped API Routes
+
+API handlers can also live inside each module's `api/` directory, co-located with pages:
+
+- `modules/auth/api/login.ts` → `/api/auth/login`
+- `modules/shop/api/products.ts` → `/api/shop/products`
+- `modules/shop/api/products.$id.ts` → `/api/shop/products/:id`
+- `modules/admin/api/v1/users.ts` → `/api/admin/v1/users`
+
+Same naming conventions apply (`.` for segments, `$` for params, `_` for parentless, `(group)` for groups).
 
 ### 4. Component Examples
 
@@ -261,7 +281,7 @@ Builds React Router v7 RouteConfig from Vite `import.meta.glob()`.
 
 ### `buildApiRouteConfig(globModules: Record<string, unknown>): RouteConfigNode[]`
 
-Builds API route config from Vite `import.meta.glob()`.
+Builds API route config from a global `api/` directory.
 
 **Parameters:**
 
@@ -277,6 +297,26 @@ Builds API route config from Vite `import.meta.glob()`.
 - `.` in filename → additional path segment
 - `$` prefix → dynamic parameter
 - `_` prefix in folder/filename → Parentless route (stripped from URL)
+
+### `buildApiModuleRouteConfig(globModules: Record<string, unknown>): RouteConfigNode[]`
+
+Builds API route config from module-scoped `api/` directories. Each module can co-locate its API handlers alongside its pages.
+
+**Parameters:**
+
+- `globModules`: Object returned from `import.meta.glob('./modules/**/api/**/*.ts')`
+
+**Returns:** Array of RouteConfigNode to use with `prefix('api', ...)`
+
+**Mapping:** `modules/<module>/api/<rest>` → `/api/<module>/<rest>`
+
+**Examples:**
+
+- `modules/auth/api/login.ts` → `/api/auth/login`
+- `modules/admin/api/users.$id.ts` → `/api/admin/users/:id`
+- `modules/shop/api/orders.export.ts` → `/api/shop/orders/export`
+
+**Conventions:** Same as `buildApiRouteConfig` — `.` for segments, `$` for params, `_` for parentless, `(group)` for route groups.
 
 ## TypeScript Support
 

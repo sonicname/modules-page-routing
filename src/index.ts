@@ -4,4 +4,5 @@
  */
 
 export * from './api-builder';
+export * from './api-module-builder';
 export * from './routes-builder';
