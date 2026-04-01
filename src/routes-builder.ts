@@ -36,7 +36,7 @@ export function toUrlSegment(seg: string): string {
   }
   // Strip parentless prefix for URL generation
   let segment = seg;
-  if (seg.startsWith('_') && !seg.match(/^_(layout|not-found|error|index)$/)) {
+  if (seg.startsWith('_') && !seg.match(/^_(layout|not-found|error|loading|index)$/)) {
     segment = seg.slice(1);
   }
   // catch-all: [...rest] -> * (check BEFORE dynamic to avoid false match)
@@ -72,13 +72,27 @@ export function isNotFoundFile(file: string) {
   );
 }
 
+export function isErrorFile(file: string) {
+  return (
+    /(?:^|\/)_error\.(t|j)sx?$/.test(file) ||
+    /(?:^|\/)error\.(t|j)sx?$/.test(file)
+  );
+}
+
+export function isLoadingFile(file: string) {
+  return (
+    /(?:^|\/)_loading\.(t|j)sx?$/.test(file) ||
+    /(?:^|\/)loading\.(t|j)sx?$/.test(file)
+  );
+}
+
 /**
  * Check if a path segment is a parentless segment (starts with _ but not a special file)
  * Parentless routes escape from their parent layouts
  */
 export function isParentlessSegment(segment: string): boolean {
   // Skip special files like _layout, _not-found, _error
-  const specialFiles = ['_layout', '_not-found', '_error', '_index'];
+  const specialFiles = ['_layout', '_not-found', '_error', '_loading', '_index'];
   const baseName = segment.replace(/\.(t|j)sx?$/, '');
   if (specialFiles.includes(baseName)) return false;
   // Check if segment starts with _ (parentless indicator)
@@ -113,6 +127,8 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
     layoutFile?: string; // absolute-like path starting with "/"
     pages: { file: string; isIndex: boolean; name?: string }[];
     notFoundFile?: string;
+    errorFile?: string;
+    loadingFile?: string;
     children: Map<string, DirNode>; // key is the original fs segment (for stable lookup) but we also store converted segment
   };
 
@@ -187,6 +203,46 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
           cur = getChild(cur, parts[i]);
         }
         cur.notFoundFile = filePath;
+        continue;
+      }
+    }
+
+    if (isErrorFile(remainder)) {
+      if (remainder === '_error.tsx' || remainder === 'error.tsx') {
+        moduleNode.errorFile = filePath;
+        continue;
+      }
+      const parts = remainder.split('/');
+      const idx = Math.max(
+        parts.lastIndexOf('_error.tsx'),
+        parts.lastIndexOf('error.tsx'),
+      );
+      if (idx >= 1) {
+        let cur = moduleNode;
+        for (let i = 0; i < idx; i++) {
+          cur = getChild(cur, parts[i]);
+        }
+        cur.errorFile = filePath;
+        continue;
+      }
+    }
+
+    if (isLoadingFile(remainder)) {
+      if (remainder === '_loading.tsx' || remainder === 'loading.tsx') {
+        moduleNode.loadingFile = filePath;
+        continue;
+      }
+      const parts = remainder.split('/');
+      const idx = Math.max(
+        parts.lastIndexOf('_loading.tsx'),
+        parts.lastIndexOf('loading.tsx'),
+      );
+      if (idx >= 1) {
+        let cur = moduleNode;
+        for (let i = 0; i < idx; i++) {
+          cur = getChild(cur, parts[i]);
+        }
+        cur.loadingFile = filePath;
         continue;
       }
     }
@@ -313,6 +369,7 @@ function sortRoutes(MODULES: GlobModules): string[] {
         !route.match(/\/_[^/]+$/) &&
         !route.endsWith('/_layout.tsx') &&
         !route.endsWith('/_error.tsx') &&
+        !route.endsWith('/_loading.tsx') &&
         !route.endsWith('/_not-found.tsx')
       );
     })
@@ -456,6 +513,38 @@ function collectLayouts(
 }
 
 /**
+ * Collects error boundary components from the modules
+ */
+function collectSpecialFiles(
+  MODULES: GlobModules,
+  suffix: string,
+): Map<string, React.ComponentType> {
+  const map = new Map<string, React.ComponentType>();
+
+  for (const route of Object.keys(MODULES)) {
+    if (!route.endsWith(`/${suffix}.tsx`)) continue;
+
+    const modMatch = route
+      .replace(/^\.\//g, '/')
+      .match(
+        new RegExp(
+          `^/modules/([^/]+)/pages/(.*/)?_?${suffix.replace('-', '\\-')}\\.tsx$`,
+        ),
+      );
+    if (!modMatch) continue;
+
+    const moduleName = modMatch[1];
+    const rest = (modMatch[2] || '').replace(/\/$/, '');
+    let key = rest ? `${moduleName}/${rest}` : moduleName;
+    key = key.replace(/\[(.+?)\]/g, ':$1');
+
+    map.set(key, lazy(MODULES[route]));
+  }
+
+  return map;
+}
+
+/**
  * Builds an array of possible layout paths for a given route
  */
 function getLayoutPaths(path: string): string[] {
@@ -499,13 +588,14 @@ function getLastSegment(key: string): string {
 function suspenseWrap(
   Component: React.ComponentType,
   children?: React.ReactNode,
+  fallback?: React.ReactNode,
 ) {
   const node = children
     ? createElement(Component, null, children)
     : createElement(Component, null);
   return createElement(
     Suspense,
-    { fallback: createElement('div', null, 'Loading...') },
+    { fallback: fallback ?? createElement('div', null, 'Loading...') },
     node,
   );
 }
@@ -539,6 +629,8 @@ function attachRoute(
  */
 function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
   const layoutRoutes = collectLayouts(MODULES);
+  const errorRoutes = collectSpecialFiles(MODULES, '_error');
+  const loadingRoutes = collectSpecialFiles(MODULES, '_loading');
 
   // Create nodes for layout routes (these will use <Outlet /> in the component itself)
   const nodes = new Map<string, RouteObject>();
@@ -550,7 +642,15 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
     const route: RouteObject = { path: getLastSegment(key) };
     const Layout = layoutRoutes.get(key);
     if (Layout) {
-      route.element = suspenseWrap(Layout);
+      const Loading = loadingRoutes.get(key);
+      const loadingFallback = Loading
+        ? createElement(Loading)
+        : undefined;
+      route.element = suspenseWrap(Layout, undefined, loadingFallback);
+    }
+    const ErrorBoundary = errorRoutes.get(key);
+    if (ErrorBoundary) {
+      route.errorElement = createElement(ErrorBoundary);
     }
     nodes.set(key, route);
 

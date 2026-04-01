@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildGlobRouteConfig,
   hasParentlessSegment,
+  isErrorFile,
   isLayoutFile,
+  isLoadingFile,
   isNotFoundFile,
   isParentlessSegment,
   isRouteGroup,
@@ -223,6 +225,52 @@ describe('hasParentlessSegment', () => {
   });
 });
 
+describe('isErrorFile', () => {
+  it('should return true for _error.tsx', () => {
+    expect(isErrorFile('_error.tsx')).toBe(true);
+  });
+
+  it('should return true for error.tsx', () => {
+    expect(isErrorFile('error.tsx')).toBe(true);
+  });
+
+  it('should return true for path/_error.tsx', () => {
+    expect(isErrorFile('some/path/_error.tsx')).toBe(true);
+  });
+
+  it('should return true for _error.jsx', () => {
+    expect(isErrorFile('_error.jsx')).toBe(true);
+  });
+
+  it('should return false for regular file', () => {
+    expect(isErrorFile('index.tsx')).toBe(false);
+    expect(isErrorFile('my_error.tsx')).toBe(false);
+  });
+});
+
+describe('isLoadingFile', () => {
+  it('should return true for _loading.tsx', () => {
+    expect(isLoadingFile('_loading.tsx')).toBe(true);
+  });
+
+  it('should return true for loading.tsx', () => {
+    expect(isLoadingFile('loading.tsx')).toBe(true);
+  });
+
+  it('should return true for path/_loading.tsx', () => {
+    expect(isLoadingFile('some/path/_loading.tsx')).toBe(true);
+  });
+
+  it('should return true for _loading.jsx', () => {
+    expect(isLoadingFile('_loading.jsx')).toBe(true);
+  });
+
+  it('should return false for regular file', () => {
+    expect(isLoadingFile('index.tsx')).toBe(false);
+    expect(isLoadingFile('my_loading.tsx')).toBe(false);
+  });
+});
+
 describe('buildGlobRouteConfig', () => {
   it('should build basic route config from glob modules', () => {
     const glob = {
@@ -340,6 +388,74 @@ describe('buildGlobRouteConfig', () => {
         r.children?.some((c) => c.path?.includes('login')),
     );
     expect(hasLogin).toBe(true);
+  });
+
+  it('should skip error files from page routes', () => {
+    const glob = {
+      './modules/admin/pages/_layout.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_error.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () =>
+        Promise.resolve({ default: () => null }),
+    };
+
+    const routes = buildGlobRouteConfig(glob as any);
+
+    expect(routes).toHaveLength(1);
+    // Layout wraps index, error file is not a page route
+    expect(routes[0].file).toBe('modules/admin/pages/_layout.tsx');
+    expect(routes[0].children).toHaveLength(1);
+    expect(routes[0].children![0].file).toBe('modules/admin/pages/index.tsx');
+  });
+
+  it('should skip loading files from page routes', () => {
+    const glob = {
+      './modules/admin/pages/_layout.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_loading.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () =>
+        Promise.resolve({ default: () => null }),
+    };
+
+    const routes = buildGlobRouteConfig(glob as any);
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0].file).toBe('modules/admin/pages/_layout.tsx');
+    expect(routes[0].children).toHaveLength(1);
+    expect(routes[0].children![0].file).toBe('modules/admin/pages/index.tsx');
+  });
+
+  it('should handle nested error and loading files', () => {
+    const glob = {
+      './modules/admin/pages/_layout.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/_error.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/_loading.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/index.tsx': () =>
+        Promise.resolve({ default: () => null }),
+    };
+
+    const routes = buildGlobRouteConfig(glob as any);
+
+    // admin layout wraps users folder
+    expect(routes).toHaveLength(1);
+    // users/index should exist but _error and _loading should not be page routes
+    const allFiles = JSON.stringify(routes);
+    expect(allFiles).not.toContain('_error.tsx');
+    expect(allFiles).not.toContain('_loading.tsx');
+    expect(allFiles).toContain('users/index.tsx');
+  });
+
+  it('should not strip _ from _loading in toUrlSegment', () => {
+    expect(toUrlSegment('_loading')).toBe('_loading');
+  });
+
+  it('should not strip _ from _error in toUrlSegment', () => {
+    expect(toUrlSegment('_error')).toBe('_error');
   });
 
   it('should skip non-module paths', () => {

@@ -139,6 +139,16 @@ export default routes satisfies RouteConfig;
 
   - `modules/admin/pages/_not-found.tsx` → 404 for `/admin/*`
 
+- **`_error.tsx`** → Error boundary for the module (used by `buildGlobRoutes` runtime)
+
+  - `modules/admin/pages/_error.tsx` → Error boundary for `/admin/*`
+  - `modules/admin/pages/users/_error.tsx` → Error boundary for `/admin/users/*`
+
+- **`_loading.tsx`** → Loading fallback for the module (replaces default Suspense fallback)
+
+  - `modules/admin/pages/_loading.tsx` → Loading UI for `/admin/*`
+  - `modules/admin/pages/users/_loading.tsx` → Loading UI for `/admin/users/*`
+
 - **`_<folder>` or `_<file>.tsx`** → Parentless route (escapes parent layout)
 
   - `modules/auth/pages/_login/index.tsx` → `/auth/login` (without auth layout)
