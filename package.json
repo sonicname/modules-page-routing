@@ -1,6 +1,6 @@
 {
   "name": "modules-page-routing",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "description": "Utility library for React Router v7 - helpers for routing, navigation, and page management",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -43,8 +43,8 @@
   "author": "sonicname",
   "license": "MIT",
   "peerDependencies": {
-    "react": "^18.3.1 || ^19.2.14",
-    "react-router": "^7.0.0 || ^7.9.2"
+    "react": "^18.3.1 || ^19.0.0",
+    "react-router": "^7.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.1",
