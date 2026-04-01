@@ -328,6 +328,56 @@ Builds API route config from module-scoped `api/` directories. Each module can c
 
 **Conventions:** Same as `buildApiRouteConfig` — `.` for segments, `$` for params, `_` for parentless, `(group)` for route groups.
 
+## CLI
+
+Visualize and validate your route tree from the terminal.
+
+### Route Tree
+
+```bash
+npx modules-page-routing routes --dir ./app
+```
+
+```text
+Page Routes
+
+  /admin                             modules/admin/pages/_layout.tsx
+  ├── (index)                        modules/admin/pages/index.tsx
+  ├── /users                         modules/admin/pages/users/index.tsx
+  ├── /users/:id                     modules/admin/pages/users/[id].tsx
+  ├── /settings                      modules/admin/pages/settings.tsx
+  └── /*                             modules/admin/pages/_not-found.tsx
+  /auth                              modules/auth/pages/_layout.tsx
+  ├── /sign-in                       modules/auth/pages/sign-in.tsx
+  └── /sign-up                       modules/auth/pages/sign-up.tsx
+
+API Routes
+
+  /api/shop/products                 modules/shop/api/products.ts
+  /api/shop/products/:id             modules/shop/api/products.$id.ts
+```
+
+Use `--json` for machine-readable output.
+
+### Validate
+
+```bash
+npx modules-page-routing validate --dir ./app
+```
+
+Checks for:
+
+| Rule | Severity | Description |
+|------|----------|-------------|
+| `duplicate-path` | error | Two files resolve to the same URL |
+| `dynamic-conflict` | error | `[id].tsx` and `[slug].tsx` in the same directory |
+| `catchall-shadow` | warn | Catch-all `*` route may shadow siblings |
+| `orphan-special-file` | warn | `_error.tsx`/`_loading.tsx` without `_layout.tsx` |
+| `empty-module` | warn | Module has no page files |
+| `missing-index` | warn | Has `_layout.tsx` but no `index.tsx` |
+
+Exits with code 1 if any errors are found — useful in CI.
+
 ## TypeScript Support
 
 This library is written entirely in TypeScript with full type definitions:

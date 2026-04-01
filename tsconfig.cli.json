@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "lib": ["ES2020"],
+    "outDir": "./dist/cli",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "declaration": false,
+    "jsx": "react"
+  },
+  "include": ["src/cli/**/*", "src/routes-builder.ts", "src/api-builder.ts", "src/api-module-builder.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
