@@ -1,4 +1,9 @@
-import { RouteConfigNode } from './routes-builder';
+import type { RouteConfigNode } from './routes-builder';
+import {
+  apiSegmentsFromRest,
+  normalizeGlobKey,
+  sortApiRoutes,
+} from './_api-shared';
 
 /**
  * Build React Router v7 RouteConfig nodes for API handlers under app/api.
@@ -21,54 +26,16 @@ export function buildApiRouteConfig(
   const routes: RouteConfigNode[] = [];
 
   for (const key of Object.keys(glob)) {
-    // Normalize: remove leading ./ so files are relative to app/ root
-    const rel = key.startsWith('./') ? key.slice(2) : key.replace(/^\//, '');
-
+    const rel = normalizeGlobKey(key);
     if (!rel.startsWith('api/')) continue;
 
-    // Compute the path relative to api/
-    const afterApi = rel.slice('api/'.length); // e.g. "v1/hello.world.ts"
-
-    // Drop extension and split directory + filename parts
-    const noExt = afterApi.replace(/\.ts$/, '');
-
-    const parts = noExt.split('/');
-    const last = parts.pop()!; // filename without extension
-
-    // filename can encode multiple segments with '.'
-    // Also strip parentless prefix (_) from segments for URL generation
-    const fileSegments = last
-      .split('.')
-      .filter(Boolean)
-      .map((seg) => {
-        // Strip parentless prefix if present
-        let s = seg.startsWith('_') ? seg.slice(1) : seg;
-        // Convert $ to dynamic param
-        return s.startsWith('$') ? `:${s.slice(1)}` : s;
-      });
-
-    // Also strip parentless prefix from directory parts
-    // Also remove route groups (folders in parentheses like (admin))
-    const cleanParts = parts
-      .filter((p) => !/^\([^)]+\)$/.test(p)) // remove route groups entirely
-      .map((p) => (p.startsWith('_') ? p.slice(1) : p)); // strip parentless prefix
-
-    const path = [...cleanParts, ...fileSegments].join('/');
-
-    // Skip if path is empty (shouldn't happen for api handlers)
+    const path = apiSegmentsFromRest(rel.slice('api/'.length)).join('/');
     if (!path) continue;
 
     routes.push({ path, file: rel });
   }
 
-  // Optional: sort for stable output (shorter/static paths first)
-  routes.sort((a, b) => {
-    const aSeg = a.path!.split('/').length;
-    const bSeg = b.path!.split('/').length;
-    if (aSeg !== bSeg) return aSeg - bSeg;
-    return a.path!.localeCompare(b.path!);
-  });
-
+  sortApiRoutes(routes);
   return routes;
 }
 

@@ -1,5 +1,8 @@
-import { readdirSync, statSync } from 'fs';
+import { readdirSync } from 'fs';
 import { join, relative, posix } from 'path';
+
+const SOURCE_EXT_RE = /\.(tsx?|jsx?)$/;
+const EMPTY_MODULE = () => Promise.resolve({});
 
 /**
  * Recursively scan a directory and return file paths in glob-like format.
@@ -11,13 +14,7 @@ export function scanDirectory(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   const fullDir = join(baseDir, pattern.split('*')[0].replace('./', ''));
-
-  try {
-    walkDir(fullDir, baseDir, result);
-  } catch {
-    // Directory doesn't exist — return empty
-  }
-
+  walkDir(fullDir, baseDir, result);
   return result;
 }
 
@@ -26,57 +23,72 @@ function walkDir(
   baseDir: string,
   result: Record<string, unknown>,
 ): void {
-  const entries = readdirSync(dir, { withFileTypes: true });
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return; // Directory doesn't exist
+  }
 
   for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
-
     if (entry.isDirectory()) {
-      // Skip common non-source directories
       if (entry.name === 'node_modules' || entry.name === '.git') continue;
-      walkDir(fullPath, baseDir, result);
-    } else if (entry.isFile() && /\.(tsx?|jsx?)$/.test(entry.name)) {
+      walkDir(join(dir, entry.name), baseDir, result);
+    } else if (entry.isFile() && SOURCE_EXT_RE.test(entry.name)) {
       // Convert to posix-style relative path with ./ prefix
-      const rel = relative(baseDir, fullPath).split('\\').join('/');
-      result[`./${rel}`] = () => Promise.resolve({});
+      const rel = relative(baseDir, join(dir, entry.name)).split('\\').join('/');
+      result[`./${rel}`] = EMPTY_MODULE;
     }
   }
 }
 
 /**
+ * Scan a subdirectory inside each module, e.g. `pages` or `api`.
+ * Silently no-ops when the modules directory or per-module subdir doesn't exist.
+ */
+function scanPerModule(
+  appDir: string,
+  subdir: 'pages' | 'api',
+  result: Record<string, unknown>,
+): void {
+  const modulesDir = join(appDir, 'modules');
+  let modules;
+  try {
+    modules = readdirSync(modulesDir, { withFileTypes: true });
+  } catch {
+    return; // No modules directory
+  }
+
+  for (const mod of modules) {
+    if (!mod.isDirectory()) continue;
+    walkDir(join(modulesDir, mod.name, subdir), appDir, result);
+  }
+}
+
+/**
  * Scan module pages: ./modules/** /pages/** /*.{tsx,ts}
+ * Also picks up root-level module files like __root.tsx, __homepage.tsx.
  */
 export function scanModulePages(appDir: string): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   const modulesDir = join(appDir, 'modules');
 
+  // Single readdirSync of modulesDir handles both per-module pages/ traversal
+  // AND root-level module files (__root.tsx etc.).
+  let entries;
   try {
-    const modules = readdirSync(modulesDir, { withFileTypes: true });
-    for (const mod of modules) {
-      if (!mod.isDirectory()) continue;
-      const pagesDir = join(modulesDir, mod.name, 'pages');
-      try {
-        statSync(pagesDir);
-        walkDir(pagesDir, appDir, result);
-      } catch {
-        // No pages directory in this module
-      }
-    }
+    entries = readdirSync(modulesDir, { withFileTypes: true });
   } catch {
-    // No modules directory
+    return result; // No modules directory
   }
 
-  // Also pick up root-level module files like __root.tsx, __homepage.tsx
-  try {
-    const rootEntries = readdirSync(modulesDir, { withFileTypes: true });
-    for (const entry of rootEntries) {
-      if (entry.isFile() && /\.(tsx?|jsx?)$/.test(entry.name)) {
-        const rel = posix.join('modules', entry.name);
-        result[`./${rel}`] = () => Promise.resolve({});
-      }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      walkDir(join(modulesDir, entry.name, 'pages'), appDir, result);
+    } else if (entry.isFile() && SOURCE_EXT_RE.test(entry.name)) {
+      const rel = posix.join('modules', entry.name);
+      result[`./${rel}`] = EMPTY_MODULE;
     }
-  } catch {
-    // No modules directory
   }
 
   return result;
@@ -87,24 +99,7 @@ export function scanModulePages(appDir: string): Record<string, unknown> {
  */
 export function scanModuleApis(appDir: string): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  const modulesDir = join(appDir, 'modules');
-
-  try {
-    const modules = readdirSync(modulesDir, { withFileTypes: true });
-    for (const mod of modules) {
-      if (!mod.isDirectory()) continue;
-      const apiDir = join(modulesDir, mod.name, 'api');
-      try {
-        statSync(apiDir);
-        walkDir(apiDir, appDir, result);
-      } catch {
-        // No api directory in this module
-      }
-    }
-  } catch {
-    // No modules directory
-  }
-
+  scanPerModule(appDir, 'api', result);
   return result;
 }
 
@@ -113,13 +108,6 @@ export function scanModuleApis(appDir: string): Record<string, unknown> {
  */
 export function scanGlobalApis(appDir: string): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  const apiDir = join(appDir, 'api');
-
-  try {
-    walkDir(apiDir, appDir, result);
-  } catch {
-    // No api directory
-  }
-
+  walkDir(join(appDir, 'api'), appDir, result);
   return result;
 }

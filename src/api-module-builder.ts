@@ -1,9 +1,17 @@
 import type { RouteConfigNode } from './routes-builder';
+import {
+  apiSegmentsFromRest,
+  normalizeGlobKey,
+  sortApiRoutes,
+} from './_api-shared';
+
+const MODULE_API_RE = /^modules\/([^/]+)\/api\/(.+)$/;
+const ROUTE_GROUP_RE = /^\([^)]+\)$/;
 
 /**
  * Build React Router v7 RouteConfig nodes for module-scoped API handlers.
  *
- * Expected glob pattern: import.meta.glob('./modules/**\/api/**\/*.ts')
+ * Expected glob pattern: import.meta.glob('./modules/** /api/** /*.ts')
  * Keys look like: "./modules/<module>/api/..." or "./modules/<module>/api/v1/hello.ts"
  *
  * URL mapping: modules/<module>/api/<rest> → <module>/<rest>
@@ -21,59 +29,28 @@ export function buildApiModuleRouteConfig(
   const routes: RouteConfigNode[] = [];
 
   for (const key of Object.keys(glob)) {
-    const rel = key.startsWith('./') ? key.slice(2) : key.replace(/^\//, '');
+    const rel = normalizeGlobKey(key);
 
-    // Match: modules/<module>/api/<rest>.ts
-    const match = rel.match(/^modules\/([^/]+)\/api\/(.+)$/);
+    const match = rel.match(MODULE_API_RE);
     if (!match) continue;
 
     const moduleName = match[1];
-    const rest = match[2]; // e.g. "v1/hello.world.ts" or "users.ts"
-
-    // Drop .ts extension
-    const noExt = rest.replace(/\.ts$/, '');
-
-    const parts = noExt.split('/');
-    const last = parts.pop()!;
-
-    // Filename segments: dots encode path segments
-    const fileSegments = last
-      .split('.')
-      .filter(Boolean)
-      .map((seg) => {
-        const s = seg.startsWith('_') ? seg.slice(1) : seg;
-        return s.startsWith('$') ? `:${s.slice(1)}` : s;
-      });
-
-    // Directory parts: strip parentless prefix, remove route groups
-    const cleanParts = parts
-      .filter((p) => !/^\([^)]+\)$/.test(p))
-      .map((p) => (p.startsWith('_') ? p.slice(1) : p));
+    const restSegments = apiSegmentsFromRest(match[2]);
 
     // Module name: strip parentless prefix, skip route groups
     const cleanModule = moduleName.startsWith('_')
       ? moduleName.slice(1)
-      : /^\([^)]+\)$/.test(moduleName)
+      : ROUTE_GROUP_RE.test(moduleName)
         ? ''
         : moduleName;
 
-    const segments = [cleanModule, ...cleanParts, ...fileSegments].filter(
-      Boolean,
-    );
-    const path = segments.join('/');
-
+    const path = [cleanModule, ...restSegments].filter(Boolean).join('/');
     if (!path) continue;
 
     routes.push({ path, file: rel });
   }
 
-  routes.sort((a, b) => {
-    const aSeg = a.path!.split('/').length;
-    const bSeg = b.path!.split('/').length;
-    if (aSeg !== bSeg) return aSeg - bSeg;
-    return a.path!.localeCompare(b.path!);
-  });
-
+  sortApiRoutes(routes);
   return routes;
 }
 
