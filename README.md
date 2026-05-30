@@ -149,6 +149,11 @@ export default routes satisfies RouteConfig;
   - `modules/admin/pages/_loading.tsx` → Loading UI for `/admin/*`
   - `modules/admin/pages/users/_loading.tsx` → Loading UI for `/admin/users/*`
 
+- **`_hydrate-fallback.tsx`** → SSR hydration fallback (used by `buildGlobRoutes` runtime, maps to React Router's `hydrateFallbackElement`)
+
+  - `modules/admin/pages/_hydrate-fallback.tsx` → Hydration UI for `/admin/*`
+  - `modules/admin/pages/users/_hydrate-fallback.tsx` → Hydration UI for `/admin/users/*`
+
 - **`_<folder>` or `_<file>.tsx`** → Parentless route (escapes parent layout)
 
   - `modules/auth/pages/_login/index.tsx` → `/auth/login` (without auth layout)

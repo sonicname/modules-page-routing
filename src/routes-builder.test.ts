@@ -3,6 +3,7 @@ import {
   buildGlobRouteConfig,
   hasParentlessSegment,
   isErrorFile,
+  isHydrateFallbackFile,
   isLayoutFile,
   isLoadingFile,
   isNotFoundFile,
@@ -271,6 +272,30 @@ describe('isLoadingFile', () => {
   });
 });
 
+describe('isHydrateFallbackFile', () => {
+  it('should return true for _hydrate-fallback.tsx', () => {
+    expect(isHydrateFallbackFile('_hydrate-fallback.tsx')).toBe(true);
+  });
+
+  it('should return true for hydrate-fallback.tsx', () => {
+    expect(isHydrateFallbackFile('hydrate-fallback.tsx')).toBe(true);
+  });
+
+  it('should return true for nested path/_hydrate-fallback.tsx', () => {
+    expect(isHydrateFallbackFile('some/path/_hydrate-fallback.tsx')).toBe(true);
+  });
+
+  it('should return true for _hydrate-fallback.jsx', () => {
+    expect(isHydrateFallbackFile('_hydrate-fallback.jsx')).toBe(true);
+  });
+
+  it('should return false for regular file', () => {
+    expect(isHydrateFallbackFile('index.tsx')).toBe(false);
+    expect(isHydrateFallbackFile('my_hydrate-fallback.tsx')).toBe(false);
+    expect(isHydrateFallbackFile('_loading.tsx')).toBe(false);
+  });
+});
+
 describe('buildGlobRouteConfig', () => {
   it('should build basic route config from glob modules', () => {
     const glob = {
@@ -425,6 +450,51 @@ describe('buildGlobRouteConfig', () => {
     expect(routes[0].file).toBe('modules/admin/pages/_layout.tsx');
     expect(routes[0].children).toHaveLength(1);
     expect(routes[0].children![0].file).toBe('modules/admin/pages/index.tsx');
+  });
+
+  it('should skip hydrate-fallback files from page routes', () => {
+    const glob = {
+      './modules/admin/pages/_layout.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_hydrate-fallback.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () =>
+        Promise.resolve({ default: () => null }),
+    };
+
+    const routes = buildGlobRouteConfig(glob as any);
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0].file).toBe('modules/admin/pages/_layout.tsx');
+    // hydrate-fallback should not appear as a child route
+    expect(routes[0].children).toHaveLength(1);
+    expect(routes[0].children![0].file).toBe('modules/admin/pages/index.tsx');
+  });
+
+  it('should skip nested hydrate-fallback files from page routes', () => {
+    const glob = {
+      './modules/admin/pages/_layout.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/_hydrate-fallback.tsx': () =>
+        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/index.tsx': () =>
+        Promise.resolve({ default: () => null }),
+    };
+
+    const routes = buildGlobRouteConfig(glob as any);
+
+    // Tree should not contain any node referencing the hydrate-fallback file
+    const allFiles: string[] = [];
+    const walk = (nodes: typeof routes) => {
+      for (const n of nodes) {
+        allFiles.push(n.file);
+        if (n.children) walk(n.children);
+      }
+    };
+    walk(routes);
+    expect(
+      allFiles.some((f) => f.endsWith('_hydrate-fallback.tsx')),
+    ).toBe(false);
   });
 
   it('should handle nested error and loading files', () => {

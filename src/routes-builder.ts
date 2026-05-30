@@ -29,12 +29,13 @@ const ROUTE_GROUP_RE = /^\([^)]+\)$/;
 const SPLAT_RE = /^\[\.\.\.(.+?)\]$/;
 const DYNAMIC_RE = /^\[(.+?)\]$/;
 const DYNAMIC_GLOBAL_RE = /\[(.+?)\]/g;
-const SPECIAL_FILE_SEGMENT_RE = /^_(layout|not-found|error|loading|index)$/;
+const SPECIAL_FILE_SEGMENT_RE = /^_(layout|not-found|error|loading|hydrate-fallback|index)$/;
 const SPECIAL_FILE_BASENAMES = new Set([
   '_layout',
   '_not-found',
   '_error',
   '_loading',
+  '_hydrate-fallback',
   '_index',
 ]);
 const EXT_RE = /\.(t|j)sx?$/;
@@ -45,6 +46,7 @@ const SPECIAL_FILES = [
   { kind: 'notFound', re: /(?:^|\/)_?not-found\.(t|j)sx?$/, names: ['_not-found.tsx', 'not-found.tsx'] },
   { kind: 'error', re: /(?:^|\/)_?error\.(t|j)sx?$/, names: ['_error.tsx', 'error.tsx'] },
   { kind: 'loading', re: /(?:^|\/)_?loading\.(t|j)sx?$/, names: ['_loading.tsx', 'loading.tsx'] },
+  { kind: 'hydrateFallback', re: /(?:^|\/)_?hydrate-fallback\.(t|j)sx?$/, names: ['_hydrate-fallback.tsx', 'hydrate-fallback.tsx'] },
 ] as const;
 
 // Regex used by sortRoutes / convertToRoutePath — hoisted for hot-path reuse.
@@ -111,6 +113,10 @@ export function isLoadingFile(file: string): boolean {
   return SPECIAL_FILES[3].re.test(file);
 }
 
+export function isHydrateFallbackFile(file: string): boolean {
+  return SPECIAL_FILES[4].re.test(file);
+}
+
 /**
  * Check if a path segment is a parentless segment (starts with _ but not a special file)
  * Parentless routes escape from their parent layouts
@@ -150,6 +156,7 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
     notFoundFile?: string;
     errorFile?: string;
     loadingFile?: string;
+    hydrateFallbackFile?: string;
     children: Map<string, DirNode>; // key is the original fs segment (for stable lookup) but we also store converted segment
   };
 
@@ -197,7 +204,8 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
         if (spec.kind === 'layout') node.layoutFile = filePath;
         else if (spec.kind === 'notFound') node.notFoundFile = filePath;
         else if (spec.kind === 'error') node.errorFile = filePath;
-        else node.loadingFile = filePath;
+        else if (spec.kind === 'loading') node.loadingFile = filePath;
+        else node.hydrateFallbackFile = filePath;
       };
 
       // Module root: filename equals one of the special names directly.
@@ -346,6 +354,7 @@ function sortRoutes(MODULES: GlobModules): string[] {
         !route.endsWith('/_layout.tsx') &&
         !route.endsWith('/_error.tsx') &&
         !route.endsWith('/_loading.tsx') &&
+        !route.endsWith('/_hydrate-fallback.tsx') &&
         !route.endsWith('/_not-found.tsx'),
     )
     .sort((a, b) => {
@@ -557,6 +566,11 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
   const layoutRoutes = collectComponentsBySuffix(MODULES, moduleKeys, 'layout');
   const errorRoutes = collectComponentsBySuffix(MODULES, moduleKeys, 'error');
   const loadingRoutes = collectComponentsBySuffix(MODULES, moduleKeys, 'loading');
+  const hydrateFallbackRoutes = collectComponentsBySuffix(
+    MODULES,
+    moduleKeys,
+    'hydrate-fallback',
+  );
 
   // Create nodes for layout routes (these will use <Outlet /> in the component itself)
   const nodes = new Map<string, RouteObject>();
@@ -577,6 +591,10 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
     const ErrorBoundary = errorRoutes.get(key);
     if (ErrorBoundary) {
       route.errorElement = createElement(ErrorBoundary);
+    }
+    const HydrateFallback = hydrateFallbackRoutes.get(key);
+    if (HydrateFallback) {
+      route.hydrateFallbackElement = createElement(HydrateFallback);
     }
     nodes.set(key, route);
 

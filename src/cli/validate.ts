@@ -190,6 +190,11 @@ function checkOrphanSpecialFiles(
       specialFiles.push({ file: key, dir, type: '_error.tsx' });
     } else if (fileName === '_loading.tsx' || fileName === 'loading.tsx') {
       specialFiles.push({ file: key, dir, type: '_loading.tsx' });
+    } else if (
+      fileName === '_hydrate-fallback.tsx' ||
+      fileName === 'hydrate-fallback.tsx'
+    ) {
+      specialFiles.push({ file: key, dir, type: '_hydrate-fallback.tsx' });
     }
   }
 
@@ -217,7 +222,7 @@ function checkEmptyModules(
     if (!match) continue;
 
     const moduleName = match[1];
-    const isSpecial = /_(?:layout|not-found|error|loading)\.(t|j)sx?$/.test(key);
+    const isSpecial = /_(?:layout|not-found|error|loading|hydrate-fallback)\.(t|j)sx?$/.test(key);
     const count = modulePages.get(moduleName) || 0;
     modulePages.set(moduleName, count + (isSpecial ? 0 : 1));
   }
