@@ -29,6 +29,9 @@ const ROUTE_GROUP_RE = /^\([^)]+\)$/;
 const SPLAT_RE = /^\[\.\.\.(.+?)\]$/;
 const DYNAMIC_RE = /^\[(.+?)\]$/;
 const DYNAMIC_GLOBAL_RE = /\[(.+?)\]/g;
+// Native React Router param syntax: $id -> :id, $ -> * (splat)
+const DOLLAR_DYNAMIC_RE = /^\$([\w-]+)$/;
+const DOLLAR_SPLAT = '$';
 const SPECIAL_FILE_SEGMENT_RE = /^_(layout|not-found|error|loading|hydrate-fallback|index)$/;
 const SPECIAL_FILE_BASENAMES = new Set([
   '_layout',
@@ -79,13 +82,32 @@ export function toUrlSegment(seg: string): string {
   if (seg.startsWith('_') && !SPECIAL_FILE_SEGMENT_RE.test(seg)) {
     segment = seg.slice(1);
   }
-  // catch-all: [...rest] -> *  (check BEFORE dynamic to avoid false match)
-  const splat = segment.match(SPLAT_RE);
-  if (splat) return '*';
-  // dynamic segment: [id] -> :id
-  const dyn = segment.match(DYNAMIC_RE);
+  return toParamSegment(segment);
+}
+
+/**
+ * Convert a single param segment to its URL form, leaving other segments untouched.
+ *   - catch-all: [...rest] or $ -> *
+ *   - dynamic:   [id] or $id    -> :id
+ */
+function toParamSegment(segment: string): string {
+  // catch-all: check BEFORE dynamic to avoid false match
+  if (segment === DOLLAR_SPLAT || SPLAT_RE.test(segment)) return '*';
+  const dyn = segment.match(DYNAMIC_RE) ?? segment.match(DOLLAR_DYNAMIC_RE);
   if (dyn) return `:${dyn[1]}`;
   return segment;
+}
+
+/** Apply `toParamSegment` to every `/`-separated segment of a path. */
+function toParamPath(path: string): string {
+  return path.split('/').map(toParamSegment).join('/');
+}
+
+/** Classify a file-system segment, ignoring a parentless `_` prefix. */
+function segmentKind(seg: string): 'splat' | 'dynamic' | 'static' {
+  const converted = toParamSegment(seg.replace(/^_/, ''));
+  if (converted === '*') return 'splat';
+  return converted.startsWith(':') ? 'dynamic' : 'static';
 }
 
 /**
@@ -363,10 +385,14 @@ function sortRoutes(MODULES: GlobModules): string[] {
       const bIsRootIndex = b === './modules/index.tsx';
       const aIsIndex = a.endsWith('/index.tsx');
       const bIsIndex = b.endsWith('/index.tsx');
-      const aIsCatchAll = a.includes('[...');
-      const bIsCatchAll = b.includes('[...');
-      const aIsDynamic = a.includes('[') && !aIsCatchAll;
-      const bIsDynamic = b.includes('[') && !bIsCatchAll;
+      const aKinds = a.replace(EXT_RE, '').split('/').map(segmentKind);
+      const bKinds = b.replace(EXT_RE, '').split('/').map(segmentKind);
+      const aIsCatchAll = a.includes('[...') || aKinds.includes('splat');
+      const bIsCatchAll = b.includes('[...') || bKinds.includes('splat');
+      const aIsDynamic =
+        (a.includes('[') || aKinds.includes('dynamic')) && !aIsCatchAll;
+      const bIsDynamic =
+        (b.includes('[') || bKinds.includes('dynamic')) && !bIsCatchAll;
       const aIsStatic = !aIsDynamic && !aIsCatchAll;
       const bIsStatic = !bIsDynamic && !bIsCatchAll;
 
@@ -442,7 +468,10 @@ function convertSegments(p: string): string {
     .replace(/^index$/, '')
     .replace(TSX_JSX_EXT_RE, '')
     .replace(SPLAT_GLOBAL_RE, '*')
-    .replace(DYNAMIC_NON_DOT_GLOBAL_RE, ':$1');
+    .replace(DYNAMIC_NON_DOT_GLOBAL_RE, ':$1')
+    .split('/')
+    .map(toParamSegment)
+    .join('/');
 }
 
 /**
@@ -470,7 +499,7 @@ function collectComponentsBySuffix(
     const moduleName = m[1];
     const rest = (m[2] || '').replace(/\/$/, '');
     let key = rest ? `${moduleName}/${rest}` : moduleName;
-    key = key.replace(DYNAMIC_GLOBAL_RE, ':$1');
+    key = toParamPath(key.replace(DYNAMIC_GLOBAL_RE, ':$1'));
     map.set(key, lazy(MODULES[route]));
   }
 
@@ -514,8 +543,7 @@ function getLastSegment(key: string): string {
   if (key === '') return '';
   const pos = key.lastIndexOf('/');
   const seg = pos === -1 ? key : key.slice(pos + 1);
-  const dyn = seg.match(DYNAMIC_RE);
-  return dyn ? `:${dyn[1]}` : seg;
+  return toParamSegment(seg);
 }
 
 function suspenseWrap(
@@ -690,7 +718,8 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
 
     if (modNestedMatch) {
       const moduleName = modNestedMatch[1];
-      const remainder = modNestedMatch[2].replace(/\/$/, '');
+      // Convert params so the key matches layout keys (e.g. "users/:id")
+      const remainder = toParamPath(modNestedMatch[2].replace(/\/$/, ''));
       basePath = remainder
         ? `/${moduleName}/${remainder}/*`
         : `/${moduleName}/*`;

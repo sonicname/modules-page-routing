@@ -29,6 +29,24 @@ describe('buildApiRouteConfig', () => {
       expect(routes).toHaveLength(1);
       expect(routes[0].path).toBe('v1/users/:id');
     });
+
+    it('should convert $param folder names to :param', () => {
+      const glob = {
+        './api/v1/users/$id/posts.ts': () => Promise.resolve({}),
+      };
+      const routes = buildApiRouteConfig(glob);
+      expect(routes).toHaveLength(1);
+      expect(routes[0].path).toBe('v1/users/:id/posts');
+    });
+
+    it('should convert a bare $ segment to * (splat)', () => {
+      const glob = {
+        './api/v1/files.$.ts': () => Promise.resolve({}),
+      };
+      const routes = buildApiRouteConfig(glob);
+      expect(routes).toHaveLength(1);
+      expect(routes[0].path).toBe('v1/files/*');
+    });
   });
 
   describe('parentless routing', () => {

@@ -45,6 +45,18 @@ describe('validateRoutes', () => {
       expect(conflicts[0].level).toBe('error');
     });
 
+    it('should detect conflicts between [] and $ dynamic segments', () => {
+      const pages = {
+        './modules/admin/pages/[id].tsx': () =>
+          Promise.resolve({ default: () => null }),
+        './modules/admin/pages/$slug.tsx': () =>
+          Promise.resolve({ default: () => null }),
+      };
+      const results = validateRoutes(pages, emptyGlob, emptyGlob);
+      const conflicts = results.filter((r) => r.rule === 'dynamic-conflict');
+      expect(conflicts).toHaveLength(1);
+    });
+
     it('should allow dynamic segments in different dirs', () => {
       const pages = {
         './modules/admin/pages/users/[id].tsx': () =>

@@ -10,6 +10,7 @@ import {
   isParentlessSegment,
   isRouteGroup,
   toUrlSegment,
+  type RouteConfigNode,
 } from './routes-builder';
 
 describe('toUrlSegment', () => {
@@ -42,6 +43,27 @@ describe('toUrlSegment', () => {
 
     it('should convert [...path] to *', () => {
       expect(toUrlSegment('[...path]')).toBe('*');
+    });
+  });
+
+  describe('native $ param segments', () => {
+    it('should convert $id to :id', () => {
+      expect(toUrlSegment('$id')).toBe(':id');
+      expect(toUrlSegment('$userId')).toBe(':userId');
+      expect(toUrlSegment('$post-slug')).toBe(':post-slug');
+    });
+
+    it('should convert a bare $ to * (splat)', () => {
+      expect(toUrlSegment('$')).toBe('*');
+    });
+
+    it('should strip the parentless prefix before converting', () => {
+      expect(toUrlSegment('_$id')).toBe(':id');
+    });
+
+    it('should leave segments with $ in the middle untouched', () => {
+      expect(toUrlSegment('price$')).toBe('price$');
+      expect(toUrlSegment('user-$id')).toBe('user-$id');
     });
   });
 
@@ -343,6 +365,52 @@ describe('buildGlobRouteConfig', () => {
         r.path?.includes(':id') || r.children?.some((c) => c.path === ':id'),
     );
     expect(hasIdRoute).toBe(true);
+  });
+
+  it('should handle native $id dynamic routes', () => {
+    const glob = {
+      './modules/users/pages/$id.tsx': () =>
+        Promise.resolve({ default: () => null }),
+    };
+
+    const routes = buildGlobRouteConfig(glob as any);
+
+    expect(routes).toEqual([
+      { path: 'users/:id', file: 'modules/users/pages/$id.tsx' },
+    ]);
+  });
+
+  it('should produce the same route tree for $ and [] param syntax', () => {
+    const page = () => Promise.resolve({ default: () => null });
+    const bracketGlob = {
+      './modules/shop/pages/_layout.tsx': page,
+      './modules/shop/pages/index.tsx': page,
+      './modules/shop/pages/new.tsx': page,
+      './modules/shop/pages/[id].tsx': page,
+      './modules/shop/pages/[id]/_layout.tsx': page,
+      './modules/shop/pages/[id]/reviews.tsx': page,
+      './modules/shop/pages/[id]/_not-found.tsx': page,
+      './modules/shop/pages/docs/[...path].tsx': page,
+    };
+    const dollarGlob = Object.fromEntries(
+      Object.entries(bracketGlob).map(([k, v]) => [
+        k.replace('[...path]', '$').replace(/\[id\]/g, '$id'),
+        v,
+      ]),
+    );
+
+    const stripFiles = (nodes: RouteConfigNode[]): unknown[] =>
+      nodes.map(({ file: _file, children, ...rest }) => ({
+        ...rest,
+        ...(children ? { children: stripFiles(children) } : {}),
+      }));
+
+    const bracketRoutes = buildGlobRouteConfig(bracketGlob as any);
+    const dollarRoutes = buildGlobRouteConfig(dollarGlob as any);
+
+    expect(stripFiles(dollarRoutes)).toEqual(stripFiles(bracketRoutes));
+    expect(JSON.stringify(dollarRoutes)).toContain('"path":":id"');
+    expect(JSON.stringify(dollarRoutes)).toContain('"path":"docs/*"');
   });
 
   it('should skip layout files from page routes', () => {

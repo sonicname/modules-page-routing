@@ -112,4 +112,69 @@ describe('buildGlobRoutes (runtime)', () => {
     };
     expect(collectPaths(routes)).not.toContain('hydrate-fallback');
   });
+
+  describe('native $ param syntax', () => {
+    const page = () => Promise.resolve({ default: () => null });
+    const bracketGlob = {
+      './modules/shop/pages/_layout.tsx': page,
+      './modules/shop/pages/index.tsx': page,
+      './modules/shop/pages/new.tsx': page,
+      './modules/shop/pages/[id].tsx': page,
+      './modules/shop/pages/[id]/_layout.tsx': page,
+      './modules/shop/pages/[id]/_error.tsx': page,
+      './modules/shop/pages/[id]/reviews.tsx': page,
+      './modules/shop/pages/[id]/_not-found.tsx': page,
+      './modules/shop/pages/docs/[...path].tsx': page,
+    };
+    const dollarGlob = Object.fromEntries(
+      Object.entries(bracketGlob).map(([k, v]) => [
+        k.replace('[...path]', '$').replace(/\[id\]/g, '$id'),
+        v,
+      ]),
+    );
+
+    // Route shape without React elements, for structural comparison
+    type Shape = {
+      path?: string;
+      index?: boolean;
+      hasError?: boolean;
+      children?: Shape[];
+    };
+    const shape = (nodes: RouteObject[]): Shape[] =>
+      nodes.map((n) => ({
+        path: n.path,
+        index: n.index,
+        hasError: n.errorElement !== undefined,
+        ...(n.children ? { children: shape(n.children) } : {}),
+      }));
+
+    it('builds the same route tree as the [] syntax', () => {
+      expect(shape(buildGlobRoutes(dollarGlob as any))).toEqual(
+        shape(buildGlobRoutes(bracketGlob as any)),
+      );
+    });
+
+    it('nests $id layout children, error boundary and not-found under :id', () => {
+      const routes = buildGlobRoutes(dollarGlob as any);
+      const idLayout = findByPath(routes, ':id');
+      expect(idLayout).toBeDefined();
+      expect(idLayout!.errorElement).toBeDefined();
+      expect(idLayout!.children?.map((c) => c.path ?? 'index')).toEqual(
+        expect.arrayContaining(['reviews', '*']),
+      );
+      expect(findByPath(routes, 'docs/*')).toBeDefined();
+    });
+
+    it('orders static routes before $ dynamic routes', () => {
+      const routes = buildGlobRoutes({
+        './modules/shop/pages/_layout.tsx': page,
+        './modules/shop/pages/$id.tsx': page,
+        './modules/shop/pages/new.tsx': page,
+      } as any);
+      const shopPaths = findByPath(routes, 'shop')!.children!.map(
+        (c) => c.path ?? 'index',
+      );
+      expect(shopPaths.indexOf('new')).toBeLessThan(shopPaths.indexOf(':id'));
+    });
+  });
 });

@@ -10,7 +10,8 @@ const ROUTE_GROUP_RE = /^\([^)]+\)$/;
  * returns the URL segments after applying the standard conventions:
  *   - drop `.ts` extension
  *   - dots in filename encode additional path segments (hello.world.ts → ["hello", "world"])
- *   - `$param` → `:param` (dynamic)
+ *   - `$param` → `:param` (dynamic), in folder names and filename segments
+ *   - `$` → `*` (splat)
  *   - `_prefix` → strip the `_` (parentless)
  *   - `(group)` folders → removed (route group)
  */
@@ -26,13 +27,14 @@ export function apiSegmentsFromRest(rest: string): string[] {
 
   const dirSegments = parts
     .filter((p) => !ROUTE_GROUP_RE.test(p))
-    .map(stripUnderscore);
+    .map(normalizeSegment);
 
   return [...dirSegments, ...fileSegments];
 }
 
 function normalizeSegment(seg: string): string {
   const stripped = stripUnderscore(seg);
+  if (stripped === '$') return '*';
   return stripped.startsWith('$') ? `:${stripped.slice(1)}` : stripped;
 }
 

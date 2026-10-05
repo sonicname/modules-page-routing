@@ -126,14 +126,16 @@ export default routes satisfies RouteConfig;
   - `modules/admin/pages/_layout.tsx` → Layout for all routes in `/admin/*`
   - `modules/admin/pages/users/_layout.tsx` → Layout for `/admin/users/*`
 
-- **`[param].tsx`** → Dynamic route parameter
+- **`[param].tsx`** or **`$param.tsx`** → Dynamic route parameter (works for folders too)
 
   - `modules/admin/pages/users/[id].tsx` → `/admin/users/:id`
-  - `modules/shop/pages/products/[slug].tsx` → `/shop/products/:slug`
+  - `modules/admin/pages/users/$id.tsx` → `/admin/users/:id` (native React Router syntax)
+  - `modules/shop/pages/products/$slug/reviews.tsx` → `/shop/products/:slug/reviews`
 
-- **`[...rest].tsx`** → Catch-all/splat route
+- **`[...rest].tsx`** or **`$.tsx`** → Catch-all/splat route
 
   - `modules/docs/pages/[...path].tsx` → `/docs/*`
+  - `modules/docs/pages/$.tsx` → `/docs/*`
 
 - **`_not-found.tsx`** → 404 page for the module
 
@@ -193,6 +195,10 @@ API routes use a different convention:
 - **`filename.$param.ts`** → Dynamic parameter (using `$` prefix)
   - `api/v1/users.$id.ts` → `/api/v1/users/:id`
   - `api/v1/posts.$slug.comments.ts` → `/api/v1/posts/:slug/comments`
+  - `api/v1/users/$id/posts.ts` → `/api/v1/users/:id/posts` (folders too)
+
+- **`filename.$.ts`** → Catch-all/splat
+  - `api/v1/files.$.ts` → `/api/v1/files/*`
 
 #### Module-scoped API Routes
 
@@ -289,8 +295,8 @@ Builds React Router RouteConfig from Vite `import.meta.glob()`.
 - Files in `modules/<module>/pages/**/*` → URL `/<module>/**/*`
 - `_layout.tsx` → Layout wrapper with `<Outlet />`
 - `index.tsx` → Index route
-- `[param]` → Dynamic parameter
-- `[...rest]` → Catch-all route
+- `[param]` or `$param` → Dynamic parameter
+- `[...rest]` or `$` → Catch-all route
 - `_not-found.tsx` → 404 handler
 - `_<folder>` or `_<file>.tsx` → Parentless route (escapes parent layout)
 
@@ -310,7 +316,7 @@ Builds API route config from a global `api/` directory.
 - `api/v1/users.$id.ts` → `/api/v1/users/:id`
 - `api/v1/products.search.ts` → `/api/v1/products/search`
 - `.` in filename → additional path segment
-- `$` prefix → dynamic parameter
+- `$` prefix (filename segment or folder) → dynamic parameter; bare `$` → catch-all
 - `_` prefix in folder/filename → Parentless route (stripped from URL)
 
 ### `buildApiModuleRouteConfig(globModules: Record<string, unknown>): RouteConfigNode[]`
@@ -375,7 +381,7 @@ Checks for:
 | Rule | Severity | Description |
 |------|----------|-------------|
 | `duplicate-path` | error | Two files resolve to the same URL |
-| `dynamic-conflict` | error | `[id].tsx` and `[slug].tsx` in the same directory |
+| `dynamic-conflict` | error | `[id].tsx` and `[slug].tsx` (or `$slug.tsx`) in the same directory |
 | `catchall-shadow` | warn | Catch-all `*` route may shadow siblings |
 | `orphan-special-file` | warn | `_error.tsx`/`_loading.tsx` without `_layout.tsx` |
 | `empty-module` | warn | Module has no page files |

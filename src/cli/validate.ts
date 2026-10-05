@@ -13,7 +13,7 @@ export interface ValidationResult {
 /**
  * Validate route config for common issues:
  * - Duplicate paths
- * - Dynamic segment conflicts ([id] vs [slug] in same dir)
+ * - Dynamic segment conflicts ([id] vs [slug] / $slug in same dir)
  * - Catch-all shadowing sibling routes
  * - Orphan special files (_error/_loading without _layout)
  * - Empty modules (pages dir exists but no pages)
@@ -113,8 +113,8 @@ function checkDynamicConflicts(
     const fileName = parts.pop()!;
     const dir = parts.join('/') || '.';
 
-    // Check if filename is a dynamic segment
-    const dynMatch = fileName.match(/^\[([^\].]+)\]\.(t|j)sx?$/);
+    // Check if filename is a dynamic segment: [id].tsx or $id.tsx
+    const dynMatch = fileName.match(/^(?:\[[^\].]+\]|\$[\w-]+)\.(t|j)sx?$/);
     if (dynMatch) {
       const existing = dirMap.get(dir) || [];
       existing.push(key);
