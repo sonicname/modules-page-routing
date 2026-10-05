@@ -1,7 +1,7 @@
-import { buildGlobRouteConfig, type GlobModules } from '../routes-builder';
-import { buildApiRouteConfig } from '../api-builder';
-import { buildApiModuleRouteConfig } from '../api-module-builder';
-import type { RouteConfigNode } from '../routes-builder';
+import { buildGlobRouteConfig, type GlobModules } from '../routes-builder.js';
+import { buildApiRouteConfig } from '../api-builder.js';
+import { buildApiModuleRouteConfig } from '../api-module-builder.js';
+import type { RouteConfigNode } from '../routes-builder.js';
 
 export interface ValidationResult {
   level: 'error' | 'warn';

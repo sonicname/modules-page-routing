@@ -1,15 +1,15 @@
-import type { RouteConfigNode } from './routes-builder';
+import type { RouteConfigNode } from './routes-builder.js';
 import {
   apiSegmentsFromRest,
   normalizeGlobKey,
   sortApiRoutes,
-} from './_api-shared';
+} from './_api-shared.js';
 
 const MODULE_API_RE = /^modules\/([^/]+)\/api\/(.+)$/;
 const ROUTE_GROUP_RE = /^\([^)]+\)$/;
 
 /**
- * Build React Router v7 RouteConfig nodes for module-scoped API handlers.
+ * Build React Router RouteConfig nodes for module-scoped API handlers.
  *
  * Expected glob pattern: import.meta.glob('./modules/** /api/** /*.ts')
  * Keys look like: "./modules/<module>/api/..." or "./modules/<module>/api/v1/hello.ts"

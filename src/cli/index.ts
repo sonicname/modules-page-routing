@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 import { resolve } from 'path';
-import { buildGlobRouteConfig, type GlobModules } from '../routes-builder';
-import { buildApiRouteConfig } from '../api-builder';
-import { buildApiModuleRouteConfig } from '../api-module-builder';
-import { scanModulePages, scanModuleApis, scanGlobalApis } from './scan';
-import { validateRoutes } from './validate';
-import { formatRouteTree, formatValidation, formatRoutesJson } from './format';
+import { buildGlobRouteConfig, type GlobModules } from '../routes-builder.js';
+import { buildApiRouteConfig } from '../api-builder.js';
+import { buildApiModuleRouteConfig } from '../api-module-builder.js';
+import { scanModulePages, scanModuleApis, scanGlobalApis } from './scan.js';
+import { validateRoutes } from './validate.js';
+import { formatRouteTree, formatValidation, formatRoutesJson } from './format.js';
 
 const args = process.argv.slice(2);
 const command = args[0];

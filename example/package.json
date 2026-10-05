@@ -9,17 +9,17 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
-    "@react-router/fs-routes": "^7.10.0",
-    "@react-router/node": "^7.9.2",
-    "@react-router/serve": "^7.9.2",
+    "@react-router/fs-routes": "^8.4.0",
+    "@react-router/node": "^8.4.0",
+    "@react-router/serve": "^8.4.0",
     "isbot": "^5.1.31",
-    "modules-page-routing": "^0.1.21",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1",
-    "react-router": "^7.9.2"
+    "modules-page-routing": "^0.1.23",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0"
   },
   "devDependencies": {
-    "@react-router/dev": "^7.9.2",
+    "@react-router/dev": "^8.4.0",
     "@tailwindcss/vite": "^4.1.13",
     "@types/node": "^22",
     "@types/react": "^19.2.7",

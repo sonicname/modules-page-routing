@@ -1,12 +1,12 @@
-import type { RouteConfigNode } from './routes-builder';
+import type { RouteConfigNode } from './routes-builder.js';
 import {
   apiSegmentsFromRest,
   normalizeGlobKey,
   sortApiRoutes,
-} from './_api-shared';
+} from './_api-shared.js';
 
 /**
- * Build React Router v7 RouteConfig nodes for API handlers under app/api.
+ * Build React Router RouteConfig nodes for API handlers under app/api.
  *
  * Conventions:
  * - Keys typically look like "./api/v1/hello.world.ts" coming from import.meta.glob

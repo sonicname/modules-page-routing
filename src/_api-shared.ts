@@ -1,4 +1,4 @@
-import type { RouteConfigNode } from './routes-builder';
+import type { RouteConfigNode } from './routes-builder.js';
 
 const TS_EXT_RE = /\.ts$/;
 const ROUTE_GROUP_RE = /^\([^)]+\)$/;

@@ -1,6 +1,6 @@
 # modules-page-routing
 
-Utility library for React Router v7 - Automatically build routes from file-system with support for modules and API handlers.
+Utility library for React Router v7 / v8 - Automatically build routes from file-system with support for modules and API handlers.
 
 ## Features
 
@@ -9,7 +9,7 @@ Utility library for React Router v7 - Automatically build routes from file-syste
 - 🧩 **Module-based** - Organize code by independent modules
 - 🔌 **API routes** - Support for building API handlers (global and module-scoped)
 - 📦 **ESM & CommonJS** - Dual module support for maximum compatibility
-- ⚡ **Zero dependencies** - Only peer dependencies on React and React Router v7
+- ⚡ **Zero dependencies** - Only peer dependencies on React and React Router v7 or v8
 
 ## Installation
 
@@ -88,7 +88,7 @@ const globTree = import.meta.glob('./modules/**/pages/**/*.{tsx,ts}');
 const apiTree = import.meta.glob('./api/**/*.ts');
 const apiModuleTree = import.meta.glob('./modules/**/api/**/*.ts');
 
-// Build React Router v7 RouteConfig from glob
+// Build React Router RouteConfig from glob
 const moduleRoutes = buildGlobRouteConfig(globTree as GlobModules);
 const apiRoutes = buildApiRouteConfig(apiTree);
 const apiModuleRoutes = buildApiModuleRouteConfig(apiModuleTree);
@@ -276,13 +276,13 @@ export async function action({ request, params }: LoaderFunctionArgs) {
 
 ### `buildGlobRouteConfig(globModules: GlobModules): RouteConfigNode[]`
 
-Builds React Router v7 RouteConfig from Vite `import.meta.glob()`.
+Builds React Router RouteConfig from Vite `import.meta.glob()`.
 
 **Parameters:**
 
 - `globModules`: Object returned from `import.meta.glob('./modules/**/pages/**/*.{tsx,ts}')`
 
-**Returns:** Array of RouteConfigNode to use with React Router v7 config
+**Returns:** Array of RouteConfigNode to use with React Router config
 
 **Conventions:**
 

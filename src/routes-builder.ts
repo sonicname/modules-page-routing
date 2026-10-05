@@ -5,10 +5,10 @@ import {
   type ReactNode,
   Suspense,
 } from 'react';
-import type { RouteObject } from 'react-router';
+import type { RouteObject } from 'react-router' with { 'resolution-mode': 'import' };
 
 /**
- * V7 RouteConfig node shape for @react-router/dev
+ * RouteConfig node shape for @react-router/dev
  * We keep it local to avoid importing dev-only types in shared code.
  */
 export type RouteConfigNode = {
@@ -135,7 +135,7 @@ export function hasParentlessSegment(path: string): boolean {
 }
 
 /**
- * Build React Router v7 RouteConfig nodes from a Vite glob() map.
+ * Build React Router RouteConfig nodes from a Vite glob() map.
  *
  * Expected keys look like: "./modules/<module>/pages/.../*.tsx" (relative to app/).
  * Returned nodes are intended to be nested under a top-level layout("/modules/__root.tsx", ...)

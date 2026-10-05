@@ -17,7 +17,7 @@ const globTree = import.meta.glob('./modules/**/pages/**/*.{tsx,ts}');
 const apiTree = import.meta.glob('./api/**/*.ts');
 const apiModuleTree = import.meta.glob('./modules/**/api/**/*.ts');
 
-// Build React Router v7 RouteConfig from glob
+// Build React Router RouteConfig from glob
 const moduleRoutes = buildGlobRouteConfig(globTree as GlobModules);
 const apiRoutes = buildApiRouteConfig(apiTree);
 const apiModuleRoutes = buildApiModuleRouteConfig(apiModuleTree);

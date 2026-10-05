@@ -1,5 +1,5 @@
-import type { RouteConfigNode } from '../routes-builder';
-import type { ValidationResult } from './validate';
+import type { RouteConfigNode } from '../routes-builder.js';
+import type { ValidationResult } from './validate.js';
 
 /**
  * Format route tree as an indented tree string for CLI output.
