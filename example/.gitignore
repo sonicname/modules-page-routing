@@ -5,3 +5,6 @@
 # React Router
 /.react-router/
 /build/
+
+# auto-types-api
+/app/api.gen.ts

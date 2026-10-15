@@ -6,17 +6,20 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "auto-types-api generate && react-router typegen && tsc"
   },
   "dependencies": {
     "@react-router/fs-routes": "^8.4.0",
     "@react-router/node": "^8.4.0",
     "@react-router/serve": "^8.4.0",
+    "auto-types-api": "file:../../auto-types-api",
+    "endpoint-kit": "^0.2.0",
     "isbot": "^5.1.31",
     "modules-page-routing": "^0.1.23",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "react-router": "^8.4.0"
+    "react-router": "^8.4.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@react-router/dev": "^8.4.0",

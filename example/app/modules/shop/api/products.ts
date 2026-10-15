@@ -1,11 +1,32 @@
-import type { LoaderFunctionArgs } from 'react-router';
+import { api } from 'auto-types-api';
+import { z } from 'zod';
+import { Product, ProductInput, products } from '../schemas';
 
-export async function loader(_args: LoaderFunctionArgs) {
-  const products = [
-    { id: 1, name: 'Widget', price: 9.99 },
-    { id: 2, name: 'Gadget', price: 24.99 },
-    { id: 3, name: 'Gizmo', price: 14.99 },
-  ];
+// GET /api/shop/products?q=wid&limit=2
+const GET = api.get(
+  {
+    query: z.object({
+      q: z.string().optional(),
+      limit: z.number().int().positive().optional(),
+    }),
+  },
+  ({ query }) => {
+    const term = query.q?.toLowerCase();
+    const matches = term
+      ? products.filter((product) => product.name.toLowerCase().includes(term))
+      : products;
+    return matches.slice(0, query.limit ?? matches.length);
+  },
+);
 
-  return Response.json(products);
-}
+// POST /api/shop/products  { name, price, description? }
+const POST = api.post({ body: ProductInput, response: Product }, ({ body }) => {
+  const product = { id: Math.max(0, ...products.map((p) => p.id)) + 1, ...body };
+  products.push(product);
+  return product;
+});
+
+// One handler for every method. Endpoints stay unexported: React Router strips `loader` and
+// `action` from the client bundle along with everything only they use (handlers, schemas).
+export const loader = api.serve({ GET, POST });
+export const action = loader;
