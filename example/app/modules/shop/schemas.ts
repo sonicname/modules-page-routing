@@ -13,6 +13,9 @@ export type Product = z.infer<typeof Product>;
 
 export const ProductInput = Product.omit({ id: true });
 
+/** Body of declared error responses (`errors: { 404: Problem }`). */
+export const Problem = z.object({ message: z.string() });
+
 // In-memory store for the example.
 export const products: Product[] = [
   { id: 1, name: 'Widget', price: 9.99, description: 'A small widget' },

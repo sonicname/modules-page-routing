@@ -1,6 +1,6 @@
 import { api } from 'auto-types-api';
 import { z } from 'zod';
-import { Product, ProductInput, products } from '../schemas';
+import { Problem, Product, ProductInput, products } from '../schemas';
 
 // GET /api/shop/products?q=wid&limit=2
 const GET = api.get(
@@ -9,6 +9,8 @@ const GET = api.get(
       q: z.string().optional(),
       limit: z.number().int().positive().optional(),
     }),
+    summary: 'Search products',
+    tags: ['shop'],
   },
   ({ query }) => {
     const term = query.q?.toLowerCase();
@@ -20,11 +22,17 @@ const GET = api.get(
 );
 
 // POST /api/shop/products  { name, price, description? }
-const POST = api.post({ body: ProductInput, response: Product }, ({ body }) => {
-  const product = { id: Math.max(0, ...products.map((p) => p.id)) + 1, ...body };
-  products.push(product);
-  return product;
-});
+const POST = api.post(
+  { body: ProductInput, response: Product, errors: { 409: Problem }, tags: ['shop'] },
+  ({ body, error }) => {
+    if (products.some((p) => p.name === body.name)) {
+      return error(409, { message: `"${body.name}" already exists` });
+    }
+    const product = { id: Math.max(0, ...products.map((p) => p.id)) + 1, ...body };
+    products.push(product);
+    return product;
+  },
+);
 
 // One handler for every method. Endpoints stay unexported: React Router strips `loader` and
 // `action` from the client bundle along with everything only they use (handlers, schemas).

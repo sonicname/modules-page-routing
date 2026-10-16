@@ -8,3 +8,4 @@
 
 # auto-types-api
 /app/api.gen.ts
+/app/api.gen.server.ts

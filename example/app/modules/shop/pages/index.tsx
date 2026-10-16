@@ -1,19 +1,16 @@
 import { Link, useLoaderData } from 'react-router';
-import { api } from '~/lib/api';
+import { serverApi } from '~/lib/api.server';
+import type { Route } from './+types/index';
 
-// Runs in the browser and calls the module's API through the typed endpoint-kit client.
-export async function clientLoader() {
-  return api.getShopProducts.orThrow({ query: { limit: 10 } });
-}
-clientLoader.hydrate = true as const;
-
-export function HydrateFallback() {
-  return <p style={{ padding: 30 }}>Loading products...</p>;
+// Server-side: calls the module's API in-process through the typed endpoint-kit client.
+// In the browser, the same routes work with `createRepository({ baseUrl: '' })`.
+export async function loader({ request, context }: Route.LoaderArgs) {
+  return serverApi({ request, context }).getShopProducts.orThrow({ query: { limit: 10 } });
 }
 
 export default function ShopIndex() {
   // Product[], typed from modules/shop/api/products.ts
-  const products = useLoaderData<typeof clientLoader>();
+  const products = useLoaderData<typeof loader>();
 
   return (
     <div style={{ padding: 30 }}>

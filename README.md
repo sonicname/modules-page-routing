@@ -256,7 +256,7 @@ export default function UserDetail() {
 #### API Handler (`api/v1/users.$id.ts`)
 
 ```tsx
-import type { LoaderFunctionArgs } from 'react-router';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const userId = params.id;
@@ -267,7 +267,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
   return Response.json(user);
 }
 
-export async function action({ request, params }: LoaderFunctionArgs) {
+export async function action({ request, params }: ActionFunctionArgs) {
   const userId = params.id;
   const data = await request.json();
 
@@ -277,6 +277,42 @@ export async function action({ request, params }: LoaderFunctionArgs) {
   return Response.json({ success: true });
 }
 ```
+
+#### Typed API routes with auto-types-api
+
+`Response.json()` loses the response type, and request bodies are untyped. With
+[auto-types-api](https://www.npmjs.com/package/auto-types-api), each method is declared with
+Standard Schema validation (Zod, Valibot, ...) and served as the route's `loader` / `action`:
+
+```ts
+// app/api/v1/users.$id.ts  →  /api/v1/users/:id
+import { api } from 'auto-types-api';
+import { z } from 'zod';
+
+const params = z.object({ id: z.coerce.number<string | number>() });
+const User = z.object({ id: z.number(), name: z.string() });
+
+const GET = api.get(
+  { params, response: User, errors: { 404: z.object({ message: z.string() }) } },
+  async ({ params, error }) => (await fetchUser(params.id)) ?? error(404, { message: 'Not found' }),
+);
+
+const PATCH = api.patch(
+  { params, body: User.pick({ name: true }), response: User },
+  ({ params, body }) => updateUser(params.id, body),
+);
+
+// Keep the endpoints unexported: React Router strips loader / action from client bundles,
+// together with everything only they use.
+export const loader = api.serve({ GET, PATCH });
+export const action = loader;
+```
+
+Its Vite plugin (`autoTypesApi()` from `auto-types-api/vite`) reads the API routes with the
+builders of this package and generates a typed [endpoint-kit](https://www.npmjs.com/package/endpoint-kit)
+client, so pages call `client.getV1UsersById({ params: { id: 1 } })` with typed input, output and
+errors. The [example app](./example) shows the full setup, including in-process calls from page
+loaders and an OpenAPI route.
 
 ## API Reference
 
