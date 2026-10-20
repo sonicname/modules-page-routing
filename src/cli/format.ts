@@ -30,7 +30,7 @@ export function formatRouteTree(
     lines.push('\x1b[1mAPI Routes\x1b[0m');
     lines.push('');
     for (const route of allApiRoutes) {
-      const path = `/api/${route.path}`;
+      const path = route.path ? `/api/${route.path}` : '/api';
       lines.push(`  ${pad(path, 36)} ${dim(route.file)}`);
     }
   }

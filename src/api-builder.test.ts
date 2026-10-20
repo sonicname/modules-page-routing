@@ -124,4 +124,25 @@ describe('buildApiRouteConfig', () => {
       expect(routes[0].path).toBe('v1/users');
     });
   });
+
+  describe('index files', () => {
+    it('should map api/index.ts to the prefix itself', () => {
+      const routes = buildApiRouteConfig({ './api/index.ts': () => Promise.resolve({}) });
+      expect(routes).toEqual([{ path: '', file: 'api/index.ts' }]);
+    });
+
+    it('should map folder and dotted index files to their parent', () => {
+      const routes = buildApiRouteConfig({
+        './api/v1/users/index.ts': () => Promise.resolve({}),
+        './api/v1/orders.index.ts': () => Promise.resolve({}),
+        './api/v1/users/$id/index.ts': () => Promise.resolve({}),
+      });
+      expect(routes.map((r) => r.path)).toEqual(['v1/orders', 'v1/users', 'v1/users/:id']);
+    });
+
+    it('should keep index in the middle of a path', () => {
+      const routes = buildApiRouteConfig({ './api/index/stats.ts': () => Promise.resolve({}) });
+      expect(routes[0].path).toBe('index/stats');
+    });
+  });
 });

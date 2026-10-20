@@ -14,6 +14,7 @@ const ROUTE_GROUP_RE = /^\([^)]+\)$/;
  *   - `$` → `*` (splat)
  *   - `_prefix` → strip the `_` (parentless)
  *   - `(group)` folders → removed (route group)
+ *   - a trailing `index` segment → removed (index.ts maps to its folder)
  */
 export function apiSegmentsFromRest(rest: string): string[] {
   const noExt = rest.replace(TS_EXT_RE, '');
@@ -28,6 +29,9 @@ export function apiSegmentsFromRest(rest: string): string[] {
   const dirSegments = parts
     .filter((p) => !ROUTE_GROUP_RE.test(p))
     .map(normalizeSegment);
+
+  // A trailing `index` maps to its parent: users/index.ts → users, index.ts → "".
+  if (fileSegments[fileSegments.length - 1] === 'index') fileSegments.pop();
 
   return [...dirSegments, ...fileSegments];
 }

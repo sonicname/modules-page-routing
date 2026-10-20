@@ -190,4 +190,15 @@ describe('buildApiModuleRouteConfig', () => {
       expect(routes[0].path).toBe('admin/users');
     });
   });
+
+  describe('index files', () => {
+    it('should map modules/<module>/api/index.ts to the module root', () => {
+      const routes = buildApiModuleRouteConfig({
+        './modules/todos/api/index.ts': () => Promise.resolve({}),
+        './modules/todos/api/$id.ts': () => Promise.resolve({}),
+        './modules/todos/api/tags/index.ts': () => Promise.resolve({}),
+      });
+      expect(routes.map((r) => r.path)).toEqual(['todos', 'todos/:id', 'todos/tags']);
+    });
+  });
 });

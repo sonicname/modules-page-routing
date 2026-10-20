@@ -29,8 +29,8 @@ export function buildApiRouteConfig(
     const rel = normalizeGlobKey(key);
     if (!rel.startsWith('api/')) continue;
 
+    // An empty path is `api/index.ts`: the prefix itself (`/api` with `prefix('api', ...)`).
     const path = apiSegmentsFromRest(rel.slice('api/'.length)).join('/');
-    if (!path) continue;
 
     routes.push({ path, file: rel });
   }

@@ -58,7 +58,7 @@ describe('example app integration', () => {
         },
         { path: 'shop', file: 'modules/shop/pages/index.tsx' },
       ],
-      api: [],
+      api: [{ path: 'openapi', file: 'api/openapi.ts' }],
       apiModules: [
         { path: 'shop/products', file: 'modules/shop/api/products.ts' },
         { path: 'shop/products/:id', file: 'modules/shop/api/products.$id.ts' },

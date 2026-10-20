@@ -54,9 +54,13 @@ describe('scanModuleApis', () => {
 });
 
 describe('scanGlobalApis', () => {
-  it('should return empty when no api/ directory exists', () => {
+  it('should find files in the app-wide api/ directory', () => {
     const result = scanGlobalApis(exampleApp);
-    // example app has no global api/ dir
+    expect(Object.keys(result)).toEqual(['./api/openapi.ts']);
+  });
+
+  it('should return empty when no api/ directory exists', () => {
+    const result = scanGlobalApis('/non/existent/path');
     expect(Object.keys(result)).toHaveLength(0);
   });
 });

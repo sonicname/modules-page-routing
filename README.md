@@ -200,11 +200,18 @@ API routes use a different convention:
 - **`filename.$.ts`** → Catch-all/splat
   - `api/v1/files.$.ts` → `/api/v1/files/*`
 
+- **`index.ts`** → The folder itself (also `name.index.ts`)
+  - `api/index.ts` → `/api`
+  - `api/v1/users/index.ts` → `/api/v1/users`
+  - `api/v1/users/$id/index.ts` → `/api/v1/users/:id`
+
 #### Module-scoped API Routes
 
 API handlers can also live inside each module's `api/` directory, co-located with pages:
 
 - `modules/auth/api/login.ts` → `/api/auth/login`
+- `modules/todos/api/index.ts` → `/api/todos` (the module root)
+- `modules/todos/api/$id.ts` → `/api/todos/:id`
 - `modules/shop/api/products.ts` → `/api/shop/products`
 - `modules/shop/api/products.$id.ts` → `/api/shop/products/:id`
 - `modules/admin/api/v1/users.ts` → `/api/admin/v1/users`
