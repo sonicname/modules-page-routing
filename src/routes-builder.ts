@@ -1,22 +1,16 @@
-import {
-  ComponentType,
-  createElement,
-  lazy,
-  type ReactNode,
-  Suspense,
-} from 'react';
+import { type ComponentType, createElement, lazy, type ReactNode, Suspense } from 'react';
 import type { RouteObject } from 'react-router' with { 'resolution-mode': 'import' };
 
 /**
  * RouteConfig node shape for @react-router/dev
  * We keep it local to avoid importing dev-only types in shared code.
  */
-export type RouteConfigNode = {
+export interface RouteConfigNode {
   path?: string;
   index?: boolean;
   file: string;
   children?: RouteConfigNode[];
-};
+}
 
 interface RouteModule {
   default: ComponentType;
@@ -46,10 +40,18 @@ const EXT_RE = /\.(t|j)sx?$/;
 // Per-special-file detection: `_name.tsx` and `name.tsx` variants in any directory depth.
 const SPECIAL_FILES = [
   { kind: 'layout', re: /(?:^|\/)_?layout\.(t|j)sx?$/, names: ['_layout.tsx', 'layout.tsx'] },
-  { kind: 'notFound', re: /(?:^|\/)_?not-found\.(t|j)sx?$/, names: ['_not-found.tsx', 'not-found.tsx'] },
+  {
+    kind: 'notFound',
+    re: /(?:^|\/)_?not-found\.(t|j)sx?$/,
+    names: ['_not-found.tsx', 'not-found.tsx'],
+  },
   { kind: 'error', re: /(?:^|\/)_?error\.(t|j)sx?$/, names: ['_error.tsx', 'error.tsx'] },
   { kind: 'loading', re: /(?:^|\/)_?loading\.(t|j)sx?$/, names: ['_loading.tsx', 'loading.tsx'] },
-  { kind: 'hydrateFallback', re: /(?:^|\/)_?hydrate-fallback\.(t|j)sx?$/, names: ['_hydrate-fallback.tsx', 'hydrate-fallback.tsx'] },
+  {
+    kind: 'hydrateFallback',
+    re: /(?:^|\/)_?hydrate-fallback\.(t|j)sx?$/,
+    names: ['_hydrate-fallback.tsx', 'hydrate-fallback.tsx'],
+  },
 ] as const;
 
 // Regex used by sortRoutes / convertToRoutePath — hoisted for hot-path reuse.
@@ -93,8 +95,8 @@ export function toUrlSegment(seg: string): string {
 function toParamSegment(segment: string): string {
   // catch-all: check BEFORE dynamic to avoid false match
   if (segment === DOLLAR_SPLAT || SPLAT_RE.test(segment)) return '*';
-  const dyn = segment.match(DYNAMIC_RE) ?? segment.match(DOLLAR_DYNAMIC_RE);
-  if (dyn) return `:${dyn[1]}`;
+  const dyn = DYNAMIC_RE.exec(segment) ?? DOLLAR_DYNAMIC_RE.exec(segment);
+  if (dyn) return `:${dyn[1] ?? ''}`;
   return segment;
 }
 
@@ -170,17 +172,17 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
     .map((k) => (k.startsWith('./') ? k.slice(2) : k.replace(/^\//, ''))); // strip leading ./ or leading /
 
   // Group by module name and path inside pages/
-  type DirNode = {
+  interface DirNode {
     // URL segment for this directory (already converted: test, :id, etc.)
     segment: string | null; // null for the virtual root below the top-level layout
     layoutFile?: string; // absolute-like path starting with "/"
-    pages: { file: string; isIndex: boolean; name?: string }[];
+    pages: { file: string; isIndex: boolean; name?: string | undefined }[];
     notFoundFile?: string;
     errorFile?: string;
     loadingFile?: string;
     hydrateFallbackFile?: string;
     children: Map<string, DirNode>; // key is the original fs segment (for stable lookup) but we also store converted segment
-  };
+  }
 
   const makeNode = (segment: string | null): DirNode => ({
     segment,
@@ -207,10 +209,10 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
     // Skip explicit root wrapper file, it's used separately: modules/__root.tsx
     if (filePath === 'modules/__root.tsx') continue;
 
-    const modMatch = filePath.match(/^modules\/([^/]+)\/pages\/(.*)$/);
+    const modMatch = /^modules\/([^/]+)\/pages\/(.*)$/.exec(filePath);
     if (!modMatch) continue;
-    const moduleName = modMatch[1];
-    const remainder = modMatch[2]; // e.g. "index.tsx", "[id]/index.tsx", "foo/bar.tsx"
+    // remainder e.g. "index.tsx", "[id]/index.tsx", "foo/bar.tsx"
+    const [, moduleName = '', remainder = ''] = modMatch;
 
     // Walk or create the module node first
     const moduleNode = getChild(root, moduleName);
@@ -239,12 +241,10 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
 
       // Nested directory: find which named variant is the last part.
       const parts = remainder.split('/');
-      const idx = Math.max(
-        ...spec.names.map((n) => parts.lastIndexOf(n)),
-      );
+      const idx = Math.max(...spec.names.map((n) => parts.lastIndexOf(n)));
       if (idx >= 1) {
         let cur = moduleNode;
-        for (let i = 0; i < idx; i++) cur = getChild(cur, parts[i]);
+        for (const part of parts.slice(0, idx)) cur = getChild(cur, part);
         assign(cur);
         consumedSpecial = true;
         break;
@@ -255,7 +255,7 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
 
     // It's a page. Split into directory segments and filename
     const parts = remainder.replace(EXT_RE, '').split('/');
-    const fileName = parts.pop()!; // without extension
+    const fileName = parts.pop() ?? ''; // without extension
 
     let cur = moduleNode;
     for (const fsSeg of parts) {
@@ -274,20 +274,14 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
     // For each child directory under this node, decide whether to create a layout route
     for (const child of node.children.values()) {
       const childPath = child.segment ?? undefined; // should always be string here
-      const currentPrefix = childPath
-        ? prefix
-          ? `${prefix}/${childPath}`
-          : childPath
-        : prefix;
+      const currentPrefix = childPath ? (prefix ? `${prefix}/${childPath}` : childPath) : prefix;
 
       // Gather grandchildren routes recursively first
       const grandchildren = buildNodes(child);
 
       // Add page routes that live directly inside this directory
       const pageRoutes: RouteConfigNode[] = child.pages.map((p) =>
-        p.isIndex
-          ? { index: true, file: p.file }
-          : { path: p.name!, file: p.file },
+        p.isIndex ? { index: true, file: p.file } : { path: p.name ?? '', file: p.file },
       );
 
       // Add not-found if present
@@ -299,7 +293,7 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
 
       if (child.layoutFile) {
         out.push({
-          path: childPath,
+          ...(childPath === undefined ? {} : { path: childPath }),
           file: child.layoutFile,
           children: childrenConfig,
         });
@@ -342,9 +336,9 @@ export function buildGlobRouteConfig(MODULES: GlobModules): RouteConfigNode[] {
               prefixed.push({
                 path: base ? `${base}/${n.path}` : n.path,
                 file: n.file,
-                children: n.children
-                  ? prefixChild(n.children, base ? `${base}/${n.path}` : n.path)
-                  : undefined,
+                ...(n.children
+                  ? { children: prefixChild(n.children, base ? `${base}/${n.path}` : n.path) }
+                  : {}),
               });
             } else if (n.children && base) {
               // Pathless with children: push children with base
@@ -389,10 +383,8 @@ function sortRoutes(MODULES: GlobModules): string[] {
       const bKinds = b.replace(EXT_RE, '').split('/').map(segmentKind);
       const aIsCatchAll = a.includes('[...') || aKinds.includes('splat');
       const bIsCatchAll = b.includes('[...') || bKinds.includes('splat');
-      const aIsDynamic =
-        (a.includes('[') || aKinds.includes('dynamic')) && !aIsCatchAll;
-      const bIsDynamic =
-        (b.includes('[') || bKinds.includes('dynamic')) && !bIsCatchAll;
+      const aIsDynamic = (a.includes('[') || aKinds.includes('dynamic')) && !aIsCatchAll;
+      const bIsDynamic = (b.includes('[') || bKinds.includes('dynamic')) && !bIsCatchAll;
       const aIsStatic = !aIsDynamic && !aIsCatchAll;
       const bIsStatic = !bIsDynamic && !bIsCatchAll;
 
@@ -444,10 +436,10 @@ function sortRoutes(MODULES: GlobModules): string[] {
 function convertToRoutePath(route: string): string {
   // Modules pattern: /modules/<module>/pages/...
   const normalized = route.replace(DOT_SLASH_RE, '/');
-  const modMatch = normalized.match(MODULE_PAGES_FULL_RE);
+  const modMatch = MODULE_PAGES_FULL_RE.exec(normalized);
   if (modMatch) {
-    const moduleName = modMatch[1];
-    let rest = convertSegments(modMatch[2]);
+    const [, moduleName = '', tail = ''] = modMatch;
+    let rest = convertSegments(tail);
     if (!rest) return `/${moduleName}`;
     if (!rest.startsWith('/')) rest = '/' + rest;
     return `/${moduleName}${rest}`;
@@ -496,11 +488,14 @@ function collectComponentsBySuffix(
     const m = route.replace(DOT_SLASH_RE, '/').match(re);
     if (!m) continue;
 
-    const moduleName = m[1];
-    const rest = (m[2] || '').replace(/\/$/, '');
+    const load = MODULES[route];
+    if (!load) continue;
+
+    const [, moduleName = '', tail = ''] = m;
+    const rest = tail.replace(/\/$/, '');
     let key = rest ? `${moduleName}/${rest}` : moduleName;
     key = toParamPath(key.replace(DYNAMIC_GLOBAL_RE, ':$1'));
-    map.set(key, lazy(MODULES[route]));
+    map.set(key, lazy(load));
   }
 
   return map;
@@ -546,14 +541,8 @@ function getLastSegment(key: string): string {
   return toParamSegment(seg);
 }
 
-function suspenseWrap(
-  Component: ComponentType,
-  children?: ReactNode,
-  fallback?: ReactNode,
-) {
-  const node = children
-    ? createElement(Component, null, children)
-    : createElement(Component, null);
+function suspenseWrap(Component: ComponentType, children?: ReactNode, fallback?: ReactNode) {
+  const node = children ? createElement(Component, null, children) : createElement(Component, null);
   return createElement(
     Suspense,
     { fallback: fallback ?? createElement('div', null, 'Loading...') },
@@ -594,26 +583,21 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
   const layoutRoutes = collectComponentsBySuffix(MODULES, moduleKeys, 'layout');
   const errorRoutes = collectComponentsBySuffix(MODULES, moduleKeys, 'error');
   const loadingRoutes = collectComponentsBySuffix(MODULES, moduleKeys, 'loading');
-  const hydrateFallbackRoutes = collectComponentsBySuffix(
-    MODULES,
-    moduleKeys,
-    'hydrate-fallback',
-  );
+  const hydrateFallbackRoutes = collectComponentsBySuffix(MODULES, moduleKeys, 'hydrate-fallback');
 
   // Create nodes for layout routes (these will use <Outlet /> in the component itself)
   const nodes = new Map<string, RouteObject>();
   const topLevel: RouteObject[] = [];
 
   const ensureNode = (key: string) => {
-    if (nodes.has(key)) return nodes.get(key)!;
+    const existing = nodes.get(key);
+    if (existing) return existing;
     const parentKey = getParentKey(key);
     const route: RouteObject = { path: getLastSegment(key) };
     const Layout = layoutRoutes.get(key);
     if (Layout) {
       const Loading = loadingRoutes.get(key);
-      const loadingFallback = Loading
-        ? createElement(Loading)
-        : undefined;
+      const loadingFallback = Loading ? createElement(Loading) : undefined;
       route.element = suspenseWrap(Layout, undefined, loadingFallback);
     }
     const ErrorBoundary = errorRoutes.get(key);
@@ -642,15 +626,12 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
 
   // Utility to find the most specific layout key for a path
   // Returns null for parentless routes (routes with _ prefix segments)
-  const findParentLayoutKey = (
-    fullPath: string,
-    originalRoute: string,
-  ): string | null => {
+  const findParentLayoutKey = (fullPath: string, originalRoute: string): string | null => {
     // Check if the original file path contains a parentless segment
     // Extract the path after /pages/ from the original route
-    const pagesMatch = originalRoute.match(PAGES_PATH_TAIL_RE);
+    const pagesMatch = PAGES_PATH_TAIL_RE.exec(originalRoute);
     if (pagesMatch) {
-      const pathAfterPages = pagesMatch[1];
+      const pathAfterPages = pagesMatch[1] ?? '';
       if (hasParentlessSegment(pathAfterPages)) {
         // Parentless route - no parent layout
         return null;
@@ -667,13 +648,15 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
   // Regular page routes
   const sortedRoutePaths = sortRoutes(MODULES);
   sortedRoutePaths.forEach((route) => {
+    const load = MODULES[route];
+    if (!load) return;
     const fullPath = convertToRoutePath(route); // e.g., '/auth/sign-in'
-    const Component = lazy(MODULES[route]);
+    const Component = lazy(load);
     const element = suspenseWrap(Component);
 
     // Check if this is a parentless route
-    const pagesMatch = route.match(PAGES_PATH_TAIL_RE);
-    const isParentless = pagesMatch && hasParentlessSegment(pagesMatch[1]);
+    const pagesMatch = PAGES_PATH_TAIL_RE.exec(route);
+    const isParentless = pagesMatch && hasParentlessSegment(pagesMatch[1] ?? '');
 
     const parentKey = findParentLayoutKey(fullPath, route);
 
@@ -690,8 +673,8 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
     const pageRoute: RouteObject = isParentless
       ? { path: fullPath, element }
       : relPath
-      ? { path: relPath, element }
-      : { index: true, element };
+        ? { path: relPath, element }
+        : { index: true, element };
 
     if (parentKey) {
       const parentNode = ensureNode(parentKey);
@@ -704,35 +687,31 @@ function buildGlobRoutes(MODULES: GlobModules): RouteObject[] {
   });
 
   // Not-found routes
-  const notFoundRoutes = moduleKeys.filter((r) =>
-    r.endsWith('/_not-found.tsx'),
-  );
+  const notFoundRoutes = moduleKeys.filter((r) => r.endsWith('/_not-found.tsx'));
 
   notFoundRoutes.forEach((filePath) => {
     // Determine target base path for wildcard
     let basePath = '/*';
     const normalized = filePath.replace(DOT_SLASH_RE, '/');
 
-    const modNestedMatch = normalized.match(NOT_FOUND_NESTED_RE);
-    const modRootMatch = normalized.match(NOT_FOUND_ROOT_RE);
+    const modNestedMatch = NOT_FOUND_NESTED_RE.exec(normalized);
+    const modRootMatch = NOT_FOUND_ROOT_RE.exec(normalized);
 
     if (modNestedMatch) {
-      const moduleName = modNestedMatch[1];
+      const [, moduleName = '', nested = ''] = modNestedMatch;
       // Convert params so the key matches layout keys (e.g. "users/:id")
-      const remainder = toParamPath(modNestedMatch[2].replace(/\/$/, ''));
-      basePath = remainder
-        ? `/${moduleName}/${remainder}/*`
-        : `/${moduleName}/*`;
+      const remainder = toParamPath(nested.replace(/\/$/, ''));
+      basePath = remainder ? `/${moduleName}/${remainder}/*` : `/${moduleName}/*`;
     } else if (modRootMatch) {
-      basePath = `/${modRootMatch[1]}/*`;
+      basePath = `/${modRootMatch[1] ?? ''}/*`;
     }
 
-    const layoutKeyForNotFound = basePath
-      .replace(/\/\*$/, '')
-      .replace(/^\//, '');
+    const layoutKeyForNotFound = basePath.replace(/\/\*$/, '').replace(/^\//, '');
     const parentKey = layoutKeyForNotFound || null; // '' becomes null (attach to top-level)
 
-    const NotFound = lazy(MODULES[filePath]);
+    const load = MODULES[filePath];
+    if (!load) return;
+    const NotFound = lazy(load);
     const element = suspenseWrap(NotFound);
     const nfRoute: RouteObject = { path: '*', element };
 

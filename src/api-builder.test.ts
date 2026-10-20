@@ -9,7 +9,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('v1/users');
+      expect(routes[0]!.path).toBe('v1/users');
     });
 
     it('should convert nested path segments using dots', () => {
@@ -18,7 +18,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('v1/products/search');
+      expect(routes[0]!.path).toBe('v1/products/search');
     });
 
     it('should convert $param to :param for dynamic routes', () => {
@@ -27,7 +27,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('v1/users/:id');
+      expect(routes[0]!.path).toBe('v1/users/:id');
     });
 
     it('should convert $param folder names to :param', () => {
@@ -36,7 +36,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('v1/users/:id/posts');
+      expect(routes[0]!.path).toBe('v1/users/:id/posts');
     });
 
     it('should convert a bare $ segment to * (splat)', () => {
@@ -45,7 +45,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('v1/files/*');
+      expect(routes[0]!.path).toBe('v1/files/*');
     });
   });
 
@@ -56,7 +56,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('v1/internal/users');
+      expect(routes[0]!.path).toBe('v1/internal/users');
     });
 
     it('should strip _ prefix from filename segments', () => {
@@ -65,7 +65,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('v1/admin/users');
+      expect(routes[0]!.path).toBe('v1/admin/users');
     });
   });
 
@@ -76,7 +76,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('v1/users');
+      expect(routes[0]!.path).toBe('v1/users');
     });
 
     it('should remove multiple route groups', () => {
@@ -85,7 +85,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('users');
+      expect(routes[0]!.path).toBe('users');
     });
   });
 
@@ -98,9 +98,9 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(3);
-      expect(routes[0].path).toBe('v1/users');
-      expect(routes[1].path).toBe('v1/users/:id');
-      expect(routes[2].path).toBe('v1/users/:id/posts');
+      expect(routes[0]!.path).toBe('v1/users');
+      expect(routes[1]!.path).toBe('v1/users/:id');
+      expect(routes[2]!.path).toBe('v1/users/:id/posts');
     });
   });
 
@@ -112,7 +112,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('v1/users');
+      expect(routes[0]!.path).toBe('v1/users');
     });
 
     it('should handle paths without leading ./', () => {
@@ -121,7 +121,7 @@ describe('buildApiRouteConfig', () => {
       };
       const routes = buildApiRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('v1/users');
+      expect(routes[0]!.path).toBe('v1/users');
     });
   });
 
@@ -142,7 +142,7 @@ describe('buildApiRouteConfig', () => {
 
     it('should keep index in the middle of a path', () => {
       const routes = buildApiRouteConfig({ './api/index/stats.ts': () => Promise.resolve({}) });
-      expect(routes[0].path).toBe('index/stats');
+      expect(routes[0]!.path).toBe('index/stats');
     });
   });
 });

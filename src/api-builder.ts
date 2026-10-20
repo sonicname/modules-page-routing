@@ -1,9 +1,5 @@
 import type { RouteConfigNode } from './routes-builder.js';
-import {
-  apiSegmentsFromRest,
-  normalizeGlobKey,
-  sortApiRoutes,
-} from './_api-shared.js';
+import { apiSegmentsFromRest, normalizeGlobKey, sortApiRoutes } from './_api-shared.js';
 
 /**
  * Build React Router RouteConfig nodes for API handlers under app/api.
@@ -20,9 +16,7 @@ import {
  * - The v1 directory is preserved, so the final path (relative to the `prefix('api', ...)`) is
  *   e.g. "v1/hello/world" or "v1/hello/:id".
  */
-export function buildApiRouteConfig(
-  glob: Record<string, unknown>,
-): RouteConfigNode[] {
+export function buildApiRouteConfig(glob: Record<string, unknown>): RouteConfigNode[] {
   const routes: RouteConfigNode[] = [];
 
   for (const key of Object.keys(glob)) {

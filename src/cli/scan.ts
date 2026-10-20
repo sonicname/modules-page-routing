@@ -8,21 +8,14 @@ const EMPTY_MODULE = () => Promise.resolve({});
  * Recursively scan a directory and return file paths in glob-like format.
  * Output keys match Vite's import.meta.glob format: "./modules/admin/pages/index.tsx"
  */
-export function scanDirectory(
-  baseDir: string,
-  pattern: string,
-): Record<string, unknown> {
+export function scanDirectory(baseDir: string, pattern: string): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  const fullDir = join(baseDir, pattern.split('*')[0].replace('./', ''));
+  const fullDir = join(baseDir, (pattern.split('*')[0] ?? '').replace('./', ''));
   walkDir(fullDir, baseDir, result);
   return result;
 }
 
-function walkDir(
-  dir: string,
-  baseDir: string,
-  result: Record<string, unknown>,
-): void {
+function walkDir(dir: string, baseDir: string, result: Record<string, unknown>): void {
   let entries;
   try {
     entries = readdirSync(dir, { withFileTypes: true });

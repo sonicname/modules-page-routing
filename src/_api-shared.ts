@@ -19,16 +19,11 @@ const ROUTE_GROUP_RE = /^\([^)]+\)$/;
 export function apiSegmentsFromRest(rest: string): string[] {
   const noExt = rest.replace(TS_EXT_RE, '');
   const parts = noExt.split('/');
-  const last = parts.pop()!;
+  const last = parts.pop() ?? '';
 
-  const fileSegments = last
-    .split('.')
-    .filter(Boolean)
-    .map(normalizeSegment);
+  const fileSegments = last.split('.').filter(Boolean).map(normalizeSegment);
 
-  const dirSegments = parts
-    .filter((p) => !ROUTE_GROUP_RE.test(p))
-    .map(normalizeSegment);
+  const dirSegments = parts.filter((p) => !ROUTE_GROUP_RE.test(p)).map(normalizeSegment);
 
   // A trailing `index` maps to its parent: users/index.ts → users, index.ts → "".
   if (fileSegments[fileSegments.length - 1] === 'index') fileSegments.pop();
@@ -60,9 +55,9 @@ export function normalizeGlobKey(key: string): string {
  */
 export function sortApiRoutes(routes: RouteConfigNode[]): void {
   routes.sort((a, b) => {
-    const aSeg = a.path!.split('/').length;
-    const bSeg = b.path!.split('/').length;
+    const aSeg = (a.path ?? '').split('/').length;
+    const bSeg = (b.path ?? '').split('/').length;
     if (aSeg !== bSeg) return aSeg - bSeg;
-    return a.path!.localeCompare(b.path!);
+    return (a.path ?? '').localeCompare(b.path ?? '');
   });
 }

@@ -1,0 +1,14 @@
+[
+  {
+    "name": "modules-page-routing (ESM)",
+    "path": "dist/index.js",
+    "ignore": ["react", "react-router"],
+    "limit": "3 kB"
+  },
+  {
+    "name": "modules-page-routing (CJS)",
+    "path": "dist/index.cjs",
+    "ignore": ["react", "react-router"],
+    "limit": "3 kB"
+  }
+]

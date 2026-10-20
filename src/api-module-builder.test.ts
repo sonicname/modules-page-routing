@@ -9,8 +9,8 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('auth/login');
-      expect(routes[0].file).toBe('modules/auth/api/login.ts');
+      expect(routes[0]!.path).toBe('auth/login');
+      expect(routes[0]!.file).toBe('modules/auth/api/login.ts');
     });
 
     it('should map modules/admin/api/users.ts to admin/users', () => {
@@ -19,7 +19,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/users');
+      expect(routes[0]!.path).toBe('admin/users');
     });
 
     it('should handle multiple modules', () => {
@@ -42,7 +42,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/users/export');
+      expect(routes[0]!.path).toBe('admin/users/export');
     });
 
     it('should handle multiple dot segments', () => {
@@ -51,7 +51,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('shop/orders/export/csv');
+      expect(routes[0]!.path).toBe('shop/orders/export/csv');
     });
   });
 
@@ -62,17 +62,16 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/users/:id');
+      expect(routes[0]!.path).toBe('admin/users/:id');
     });
 
     it('should handle param in the middle of path', () => {
       const glob = {
-        './modules/blog/api/posts.$slug.comments.ts': () =>
-          Promise.resolve({}),
+        './modules/blog/api/posts.$slug.comments.ts': () => Promise.resolve({}),
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('blog/posts/:slug/comments');
+      expect(routes[0]!.path).toBe('blog/posts/:slug/comments');
     });
   });
 
@@ -83,7 +82,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/v1/users');
+      expect(routes[0]!.path).toBe('admin/v1/users');
     });
 
     it('should handle deeply nested paths', () => {
@@ -92,7 +91,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/v1/reports/sales');
+      expect(routes[0]!.path).toBe('admin/v1/reports/sales');
     });
   });
 
@@ -103,7 +102,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/internal/health');
+      expect(routes[0]!.path).toBe('admin/internal/health');
     });
 
     it('should strip _ prefix from filename segments', () => {
@@ -112,7 +111,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/admin/users');
+      expect(routes[0]!.path).toBe('admin/admin/users');
     });
 
     it('should strip _ prefix from module name', () => {
@@ -121,7 +120,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('internal/health');
+      expect(routes[0]!.path).toBe('internal/health');
     });
   });
 
@@ -132,7 +131,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/users');
+      expect(routes[0]!.path).toBe('admin/users');
     });
 
     it('should skip module name if it is a route group', () => {
@@ -141,7 +140,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('health');
+      expect(routes[0]!.path).toBe('health');
     });
   });
 
@@ -154,9 +153,9 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(3);
-      expect(routes[0].path).toBe('admin/users');
-      expect(routes[1].path).toBe('admin/users/:id');
-      expect(routes[2].path).toBe('admin/users/:id/posts');
+      expect(routes[0]!.path).toBe('admin/users');
+      expect(routes[1]!.path).toBe('admin/users/:id');
+      expect(routes[2]!.path).toBe('admin/users/:id/posts');
     });
   });
 
@@ -168,7 +167,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/users');
+      expect(routes[0]!.path).toBe('admin/users');
     });
 
     it('should skip module page files', () => {
@@ -178,7 +177,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/users');
+      expect(routes[0]!.path).toBe('admin/users');
     });
 
     it('should handle paths without leading ./', () => {
@@ -187,7 +186,7 @@ describe('buildApiModuleRouteConfig', () => {
       };
       const routes = buildApiModuleRouteConfig(glob);
       expect(routes).toHaveLength(1);
-      expect(routes[0].path).toBe('admin/users');
+      expect(routes[0]!.path).toBe('admin/users');
     });
   });
 

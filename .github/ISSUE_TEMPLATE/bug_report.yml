@@ -1,0 +1,25 @@
+name: Bug report
+description: Something is not working as expected
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Reproduction
+      description: Minimal code or steps to reproduce the issue.
+      render: ts
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Package version
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Node / runtime version

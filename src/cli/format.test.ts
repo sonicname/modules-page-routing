@@ -25,9 +25,7 @@ describe('formatRouteTree', () => {
   });
 
   it('should format API routes', () => {
-    const apiRoutes: RouteConfigNode[] = [
-      { path: 'v1/users', file: 'api/v1/users.ts' },
-    ];
+    const apiRoutes: RouteConfigNode[] = [{ path: 'v1/users', file: 'api/v1/users.ts' }];
     const apiModuleRoutes: RouteConfigNode[] = [
       { path: 'shop/products', file: 'modules/shop/api/products.ts' },
     ];
@@ -80,21 +78,17 @@ describe('formatValidation', () => {
 
 describe('formatRoutesJson', () => {
   it('should output valid JSON with all route types', () => {
-    const pages: RouteConfigNode[] = [
-      { path: 'admin', file: 'admin.tsx' },
-    ];
-    const api: RouteConfigNode[] = [
-      { path: 'v1/users', file: 'api/v1/users.ts' },
-    ];
+    const pages: RouteConfigNode[] = [{ path: 'admin', file: 'admin.tsx' }];
+    const api: RouteConfigNode[] = [{ path: 'v1/users', file: 'api/v1/users.ts' }];
     const apiModule: RouteConfigNode[] = [
       { path: 'shop/products', file: 'modules/shop/api/products.ts' },
     ];
 
     const output = formatRoutesJson(pages, api, apiModule);
-    const parsed = JSON.parse(output);
+    const parsed = JSON.parse(output) as Record<string, unknown[]>;
 
-    expect(parsed.pages).toHaveLength(1);
-    expect(parsed.api).toHaveLength(1);
-    expect(parsed.apiModules).toHaveLength(1);
+    expect(parsed['pages']).toHaveLength(1);
+    expect(parsed['api']).toHaveLength(1);
+    expect(parsed['apiModules']).toHaveLength(1);
   });
 });

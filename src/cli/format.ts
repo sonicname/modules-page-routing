@@ -50,15 +50,12 @@ function formatNodes(
 ): void {
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
+    if (!node) continue;
     const isLast = i === nodes.length - 1;
     const connector = indent ? (isLast ? '└── ' : '├── ') : '  ';
     const childIndent = indent ? indent + (isLast ? '    ' : '│   ') : '  ';
 
-    const displayPath = node.index
-      ? '(index)'
-      : node.path
-        ? `/${node.path}`
-        : '(pathless)';
+    const displayPath = node.index ? '(index)' : node.path ? `/${node.path}` : '(pathless)';
 
     const fullPath = node.index
       ? parentPath || '/'
@@ -106,8 +103,8 @@ export function formatValidation(results: ValidationResult[]): string {
   }
 
   const summary = [
-    errors.length > 0 ? `\x1b[31m${errors.length} error(s)\x1b[0m` : null,
-    warns.length > 0 ? `\x1b[33m${warns.length} warning(s)\x1b[0m` : null,
+    errors.length > 0 ? `\x1b[31m${String(errors.length)} error(s)\x1b[0m` : null,
+    warns.length > 0 ? `\x1b[33m${String(warns.length)} warning(s)\x1b[0m` : null,
   ]
     .filter(Boolean)
     .join(', ');

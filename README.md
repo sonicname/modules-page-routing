@@ -1,5 +1,9 @@
 # modules-page-routing
 
+[![npm](https://img.shields.io/npm/v/modules-page-routing.svg)](https://www.npmjs.com/package/modules-page-routing)
+[![CI](https://github.com/sonicname/modules-page-routing/actions/workflows/ci.yml/badge.svg)](https://github.com/sonicname/modules-page-routing/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/modules-page-routing.svg)](./LICENSE)
+
 Utility library for React Router v7 / v8 - Automatically build routes from file-system with support for modules and API handlers.
 
 ## Features
@@ -69,12 +73,7 @@ app/
 ### 2. `routes.ts` File
 
 ```typescript
-import {
-  index,
-  layout,
-  prefix,
-  type RouteConfig,
-} from '@react-router/dev/routes';
+import { index, layout, prefix, type RouteConfig } from '@react-router/dev/routes';
 import { flatRoutes } from '@react-router/fs-routes';
 import {
   buildApiRouteConfig,
@@ -95,10 +94,7 @@ const apiModuleRoutes = buildApiModuleRouteConfig(apiModuleTree);
 
 const routes = [
   // All module pages are nested under a shared layout
-  layout('modules/__root.tsx', [
-    index('modules/__homepage.tsx'),
-    ...moduleRoutes,
-  ]),
+  layout('modules/__root.tsx', [index('modules/__homepage.tsx'), ...moduleRoutes]),
 
   // API routes: global (/api/v1/...) + module-scoped (/api/<module>/...)
   ...prefix('api', [...apiRoutes, ...apiModuleRoutes]),
@@ -227,12 +223,12 @@ import { Outlet } from 'react-router';
 
 export default function AdminLayout() {
   return (
-    <div className='admin-layout'>
+    <div className="admin-layout">
       <aside>
         <nav>
-          <a href='/admin'>Dashboard</a>
-          <a href='/admin/users'>Users</a>
-          <a href='/admin/settings'>Settings</a>
+          <a href="/admin">Dashboard</a>
+          <a href="/admin/users">Users</a>
+          <a href="/admin/settings">Settings</a>
         </nav>
       </aside>
       <main>
@@ -421,14 +417,14 @@ npx modules-page-routing validate --dir ./app
 
 Checks for:
 
-| Rule | Severity | Description |
-|------|----------|-------------|
-| `duplicate-path` | error | Two files resolve to the same URL |
-| `dynamic-conflict` | error | `[id].tsx` and `[slug].tsx` (or `$slug.tsx`) in the same directory |
-| `catchall-shadow` | warn | Catch-all `*` route may shadow siblings |
-| `orphan-special-file` | warn | `_error.tsx`/`_loading.tsx` without `_layout.tsx` |
-| `empty-module` | warn | Module has no page files |
-| `missing-index` | warn | Has `_layout.tsx` but no `index.tsx` |
+| Rule                  | Severity | Description                                                        |
+| --------------------- | -------- | ------------------------------------------------------------------ |
+| `duplicate-path`      | error    | Two files resolve to the same URL                                  |
+| `dynamic-conflict`    | error    | `[id].tsx` and `[slug].tsx` (or `$slug.tsx`) in the same directory |
+| `catchall-shadow`     | warn     | Catch-all `*` route may shadow siblings                            |
+| `orphan-special-file` | warn     | `_error.tsx`/`_loading.tsx` without `_layout.tsx`                  |
+| `empty-module`        | warn     | Module has no page files                                           |
+| `missing-index`       | warn     | Has `_layout.tsx` but no `index.tsx`                               |
 
 Exits with code 1 if any errors are found — useful in CI.
 
@@ -464,7 +460,7 @@ MIT
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request or create an Issue on GitHub.
+Contributions are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for the local setup, commit conventions and release process.
 
 ## Repository
 

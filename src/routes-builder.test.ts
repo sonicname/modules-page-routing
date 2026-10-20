@@ -321,13 +321,11 @@ describe('isHydrateFallbackFile', () => {
 describe('buildGlobRouteConfig', () => {
   it('should build basic route config from glob modules', () => {
     const glob = {
-      './modules/auth/pages/login.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/auth/pages/register.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/auth/pages/login.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/auth/pages/register.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     // Without a layout, routes are flattened with full path
     expect(routes.length).toBeGreaterThanOrEqual(1);
@@ -338,11 +336,10 @@ describe('buildGlobRouteConfig', () => {
 
   it('should handle index routes', () => {
     const glob = {
-      './modules/admin/pages/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     expect(routes.length).toBeGreaterThanOrEqual(1);
     // Index route becomes the module path
@@ -352,32 +349,27 @@ describe('buildGlobRouteConfig', () => {
 
   it('should handle dynamic routes', () => {
     const glob = {
-      './modules/users/pages/[id].tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/users/pages/[id].tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     expect(routes.length).toBeGreaterThanOrEqual(1);
     // Check that dynamic route is converted to :id format
     const hasIdRoute = routes.some(
-      (r) =>
-        r.path?.includes(':id') || r.children?.some((c) => c.path === ':id'),
+      (r) => r.path?.includes(':id') === true || r.children?.some((c) => c.path === ':id'),
     );
     expect(hasIdRoute).toBe(true);
   });
 
   it('should handle native $id dynamic routes', () => {
     const glob = {
-      './modules/users/pages/$id.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/users/pages/$id.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
-    expect(routes).toEqual([
-      { path: 'users/:id', file: 'modules/users/pages/$id.tsx' },
-    ]);
+    expect(routes).toEqual([{ path: 'users/:id', file: 'modules/users/pages/$id.tsx' }]);
   });
 
   it('should produce the same route tree for $ and [] param syntax', () => {
@@ -405,8 +397,8 @@ describe('buildGlobRouteConfig', () => {
         ...(children ? { children: stripFiles(children) } : {}),
       }));
 
-    const bracketRoutes = buildGlobRouteConfig(bracketGlob as any);
-    const dollarRoutes = buildGlobRouteConfig(dollarGlob as any);
+    const bracketRoutes = buildGlobRouteConfig(bracketGlob);
+    const dollarRoutes = buildGlobRouteConfig(dollarGlob);
 
     expect(stripFiles(dollarRoutes)).toEqual(stripFiles(bracketRoutes));
     expect(JSON.stringify(dollarRoutes)).toContain('"path":":id"');
@@ -415,17 +407,15 @@ describe('buildGlobRouteConfig', () => {
 
   it('should skip layout files from page routes', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     expect(routes).toHaveLength(1);
     // Layout should wrap the index as a parent route
-    expect(routes[0].file).toBe('modules/admin/pages/_layout.tsx');
+    expect(routes[0]!.file).toBe('modules/admin/pages/_layout.tsx');
   });
 
   it('should handle route groups by removing them from path', () => {
@@ -434,14 +424,14 @@ describe('buildGlobRouteConfig', () => {
         Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     expect(routes.length).toBeGreaterThanOrEqual(1);
     // Route group (dashboard) should be stripped from path
     const hasOverview = routes.some(
       (r) =>
         r.path === 'admin' ||
-        r.path?.includes('overview') ||
+        r.path?.includes('overview') === true ||
         r.children?.some((c) => c.path?.includes('overview')),
     );
     expect(hasOverview).toBe(true);
@@ -449,107 +439,90 @@ describe('buildGlobRouteConfig', () => {
 
   it('should handle nested folder structure', () => {
     const glob = {
-      './modules/shop/pages/products/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/shop/pages/products/[id].tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/shop/pages/products/index.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/shop/pages/products/[id].tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     expect(routes.length).toBeGreaterThanOrEqual(1);
     // Should have shop as the base path
-    const hasShop = routes.some(
-      (r) => r.path === 'shop' || r.path?.startsWith('shop'),
-    );
+    const hasShop = routes.some((r) => r.path === 'shop' || r.path?.startsWith('shop'));
     expect(hasShop).toBe(true);
   });
 
   it('should handle parentless routes', () => {
     const glob = {
-      './modules/auth/pages/_login/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/auth/pages/_login/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     expect(routes.length).toBeGreaterThanOrEqual(1);
     // Parentless route should have _login stripped to 'login' in path
     const hasLogin = routes.some(
       (r) =>
-        r.path?.includes('login') ||
-        r.children?.some((c) => c.path?.includes('login')),
+        r.path?.includes('login') === true || r.children?.some((c) => c.path?.includes('login')),
     );
     expect(hasLogin).toBe(true);
   });
 
   it('should skip error files from page routes', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/_error.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_error.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     expect(routes).toHaveLength(1);
     // Layout wraps index, error file is not a page route
-    expect(routes[0].file).toBe('modules/admin/pages/_layout.tsx');
-    expect(routes[0].children).toHaveLength(1);
-    expect(routes[0].children![0].file).toBe('modules/admin/pages/index.tsx');
+    expect(routes[0]!.file).toBe('modules/admin/pages/_layout.tsx');
+    expect(routes[0]!.children).toHaveLength(1);
+    expect(routes[0]!.children![0]!.file).toBe('modules/admin/pages/index.tsx');
   });
 
   it('should skip loading files from page routes', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/_loading.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_loading.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     expect(routes).toHaveLength(1);
-    expect(routes[0].file).toBe('modules/admin/pages/_layout.tsx');
-    expect(routes[0].children).toHaveLength(1);
-    expect(routes[0].children![0].file).toBe('modules/admin/pages/index.tsx');
+    expect(routes[0]!.file).toBe('modules/admin/pages/_layout.tsx');
+    expect(routes[0]!.children).toHaveLength(1);
+    expect(routes[0]!.children![0]!.file).toBe('modules/admin/pages/index.tsx');
   });
 
   it('should skip hydrate-fallback files from page routes', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/_hydrate-fallback.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_hydrate-fallback.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     expect(routes).toHaveLength(1);
-    expect(routes[0].file).toBe('modules/admin/pages/_layout.tsx');
+    expect(routes[0]!.file).toBe('modules/admin/pages/_layout.tsx');
     // hydrate-fallback should not appear as a child route
-    expect(routes[0].children).toHaveLength(1);
-    expect(routes[0].children![0].file).toBe('modules/admin/pages/index.tsx');
+    expect(routes[0]!.children).toHaveLength(1);
+    expect(routes[0]!.children![0]!.file).toBe('modules/admin/pages/index.tsx');
   });
 
   it('should skip nested hydrate-fallback files from page routes', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
       './modules/admin/pages/users/_hydrate-fallback.tsx': () =>
         Promise.resolve({ default: () => null }),
-      './modules/admin/pages/users/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     // Tree should not contain any node referencing the hydrate-fallback file
     const allFiles: string[] = [];
@@ -560,24 +533,18 @@ describe('buildGlobRouteConfig', () => {
       }
     };
     walk(routes);
-    expect(
-      allFiles.some((f) => f.endsWith('_hydrate-fallback.tsx')),
-    ).toBe(false);
+    expect(allFiles.some((f) => f.endsWith('_hydrate-fallback.tsx'))).toBe(false);
   });
 
   it('should handle nested error and loading files', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/users/_error.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/users/_loading.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/users/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/_error.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/_loading.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     // admin layout wraps users folder
     expect(routes).toHaveLength(1);
@@ -599,18 +566,15 @@ describe('buildGlobRouteConfig', () => {
   it('should skip non-module paths', () => {
     const glob = {
       './routes/home.tsx': () => Promise.resolve({ default: () => null }),
-      './modules/auth/pages/login.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/auth/pages/login.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRouteConfig(glob as any);
+    const routes = buildGlobRouteConfig(glob);
 
     // Should only have auth module route, not routes/home
     const hasRoutes = routes.some((r) => r.path?.includes('routes'));
     expect(hasRoutes).toBe(false);
-    const hasAuth = routes.some(
-      (r) => r.path === 'auth' || r.path?.includes('auth'),
-    );
+    const hasAuth = routes.some((r) => r.path === 'auth' || r.path?.includes('auth'));
     expect(hasAuth).toBe(true);
   });
 });

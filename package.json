@@ -2,40 +2,6 @@
   "name": "modules-page-routing",
   "version": "0.1.24",
   "description": "Utility library for React Router v7 / v8 - helpers for routing, navigation, and page management",
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/types/index.d.ts",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/types/index.d.ts",
-        "default": "./dist/esm/index.js"
-      },
-      "require": {
-        "types": "./dist/types/index.d.ts",
-        "default": "./dist/cjs/index.js"
-      }
-    }
-  },
-  "bin": {
-    "modules-page-routing": "./dist/cli/cli/index.js"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "build": "npm run build:cjs && npm run build:esm && npm run build:types && npm run build:cli",
-    "build:cli": "tsc -p tsconfig.cli.json",
-    "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:esm": "tsc -p tsconfig.esm.json && node -e \"require('fs').writeFileSync('dist/esm/package.json', JSON.stringify({ type: 'module' }))\"",
-    "build:types": "tsc -p tsconfig.json --emitDeclarationOnly",
-    "clean": "rimraf dist",
-    "prebuild": "npm run clean",
-    "prepublishOnly": "npm run build",
-    "test": "vitest run"
-  },
   "keywords": [
     "react-router",
     "react-router-v7",
@@ -45,27 +11,109 @@
     "utilities",
     "typescript"
   ],
-  "author": "sonicname",
+  "homepage": "https://github.com/sonicname/modules-page-routing#readme",
+  "bugs": {
+    "url": "https://github.com/sonicname/modules-page-routing/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonicname/modules-page-routing.git"
+  },
   "license": "MIT",
+  "author": "Phạm Anh Đức <phamanhduc2k2@gmail.com>",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "modules-page-routing": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@12.9.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rimraf dist && tsup",
+    "dev": "tsup --watch",
+    "clean": "rimraf dist coverage docs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "docs:api": "typedoc",
+    "size": "size-limit",
+    "check:exports": "attw --pack . && publint",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build && pnpm check:exports",
+    "changeset": "changeset",
+    "changeset:version": "changeset version && pnpm install --lockfile-only",
+    "release": "pnpm build && changeset publish",
+    "prepublishOnly": "pnpm build",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,cjs,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
   "peerDependencies": {
     "react": "^18.3.1 || ^19.0.0",
     "react-router": "^7.0.0 || ^8.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@changesets/cli": "^3.0.3",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@eslint/js": "^10.0.1",
+    "@size-limit/preset-small-lib": "^14.1.0",
+    "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
+    "@vitest/coverage-v8": "^5.0.3",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.9",
+    "publint": "^0.3.25",
     "react": "^19.3.0",
     "react-router": "^8.4.0",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.3.3",
-    "vitest": "^4.0.15"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/sonicname/modules-page-routing.git"
-  },
-  "bugs": {
-    "url": "https://github.com/sonicname/modules-page-routing/issues"
-  },
-  "homepage": "https://github.com/sonicname/modules-page-routing#readme"
+    "rimraf": "^6.1.3",
+    "size-limit": "^14.1.0",
+    "tsup": "^8.5.1",
+    "typedoc": "^0.28.20",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3"
+  }
 }

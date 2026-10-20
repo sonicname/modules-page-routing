@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { resolve } from 'path';
 import { buildGlobRouteConfig, type GlobModules } from '../routes-builder.js';
 import { buildApiRouteConfig } from '../api-builder.js';
@@ -20,7 +18,7 @@ function parseFlag(flag: string): string | undefined {
 const hasFlag = (flag: string) => args.includes(flag);
 
 function getAppDir(): string {
-  const dir = parseFlag('--dir') || './app';
+  const dir = parseFlag('--dir') ?? './app';
   return resolve(process.cwd(), dir);
 }
 
@@ -78,7 +76,7 @@ function runValidate(): void {
   const total = pageKeys.length + apiKeys.length + apiModuleKeys.length;
 
   console.log('');
-  console.log(`Scanned ${total} route file(s) in ${appDir}`);
+  console.log(`Scanned ${String(total)} route file(s) in ${appDir}`);
   console.log('');
 
   const results = validateRoutes(pageGlob, apiGlob, apiModuleGlob);

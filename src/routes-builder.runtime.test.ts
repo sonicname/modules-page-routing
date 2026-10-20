@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RouteObject } from 'react-router';
-import buildGlobRoutes from './routes-builder';
+import buildGlobRoutes, { type GlobModules } from './routes-builder';
 
 /**
  * Runtime tests for the default export `buildGlobRoutes` (RouteObject[] for createBrowserRouter).
@@ -10,10 +10,7 @@ import buildGlobRoutes from './routes-builder';
  * (e.g. "admin") appear as children of that wrapper.
  */
 
-function findByPath(
-  routes: RouteObject[],
-  path: string,
-): RouteObject | undefined {
+function findByPath(routes: RouteObject[], path: string): RouteObject | undefined {
   for (const r of routes) {
     if (r.path === path) return r;
     if (r.children) {
@@ -27,15 +24,12 @@ function findByPath(
 describe('buildGlobRoutes (runtime)', () => {
   it('attaches errorElement on a module layout when _error.tsx exists', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/_error.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_error.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRoutes(glob as any);
+    const routes = buildGlobRoutes(glob);
     const adminLayout = findByPath(routes, 'admin');
     expect(adminLayout).toBeDefined();
     expect(adminLayout!.errorElement).toBeDefined();
@@ -43,15 +37,12 @@ describe('buildGlobRoutes (runtime)', () => {
 
   it('attaches hydrateFallbackElement on a module layout when _hydrate-fallback.tsx exists', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/_hydrate-fallback.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_hydrate-fallback.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRoutes(glob as any);
+    const routes = buildGlobRoutes(glob);
     const adminLayout = findByPath(routes, 'admin');
     expect(adminLayout).toBeDefined();
     expect(adminLayout!.hydrateFallbackElement).toBeDefined();
@@ -59,13 +50,11 @@ describe('buildGlobRoutes (runtime)', () => {
 
   it('does not attach hydrateFallbackElement when no _hydrate-fallback.tsx is present', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRoutes(glob as any);
+    const routes = buildGlobRoutes(glob);
     const adminLayout = findByPath(routes, 'admin');
     expect(adminLayout).toBeDefined();
     expect(adminLayout!.hydrateFallbackElement).toBeUndefined();
@@ -73,17 +62,14 @@ describe('buildGlobRoutes (runtime)', () => {
 
   it('attaches hydrateFallbackElement at a nested layout depth, not the outer one', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/users/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/_layout.tsx': () => Promise.resolve({ default: () => null }),
       './modules/admin/pages/users/_hydrate-fallback.tsx': () =>
         Promise.resolve({ default: () => null }),
-      './modules/admin/pages/users/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/users/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRoutes(glob as any);
+    const routes = buildGlobRoutes(glob);
     const adminLayout = findByPath(routes, 'admin');
     const usersLayout = findByPath(routes, 'users');
     expect(usersLayout).toBeDefined();
@@ -93,15 +79,12 @@ describe('buildGlobRoutes (runtime)', () => {
 
   it('does not treat _hydrate-fallback.tsx as a regular page route', () => {
     const glob = {
-      './modules/admin/pages/_layout.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/_hydrate-fallback.tsx': () =>
-        Promise.resolve({ default: () => null }),
-      './modules/admin/pages/index.tsx': () =>
-        Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_layout.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/_hydrate-fallback.tsx': () => Promise.resolve({ default: () => null }),
+      './modules/admin/pages/index.tsx': () => Promise.resolve({ default: () => null }),
     };
 
-    const routes = buildGlobRoutes(glob as any);
+    const routes = buildGlobRoutes(glob);
     const collectPaths = (nodes: RouteObject[]): string[] => {
       const out: string[] = [];
       for (const n of nodes) {
@@ -134,12 +117,12 @@ describe('buildGlobRoutes (runtime)', () => {
     );
 
     // Route shape without React elements, for structural comparison
-    type Shape = {
-      path?: string;
-      index?: boolean;
+    interface Shape {
+      path?: string | undefined;
+      index?: boolean | undefined;
       hasError?: boolean;
       children?: Shape[];
-    };
+    }
     const shape = (nodes: RouteObject[]): Shape[] =>
       nodes.map((n) => ({
         path: n.path,
@@ -149,13 +132,13 @@ describe('buildGlobRoutes (runtime)', () => {
       }));
 
     it('builds the same route tree as the [] syntax', () => {
-      expect(shape(buildGlobRoutes(dollarGlob as any))).toEqual(
-        shape(buildGlobRoutes(bracketGlob as any)),
+      expect(shape(buildGlobRoutes(dollarGlob as GlobModules))).toEqual(
+        shape(buildGlobRoutes(bracketGlob as GlobModules)),
       );
     });
 
     it('nests $id layout children, error boundary and not-found under :id', () => {
-      const routes = buildGlobRoutes(dollarGlob as any);
+      const routes = buildGlobRoutes(dollarGlob);
       const idLayout = findByPath(routes, ':id');
       expect(idLayout).toBeDefined();
       expect(idLayout!.errorElement).toBeDefined();
@@ -170,10 +153,8 @@ describe('buildGlobRoutes (runtime)', () => {
         './modules/shop/pages/_layout.tsx': page,
         './modules/shop/pages/$id.tsx': page,
         './modules/shop/pages/new.tsx': page,
-      } as any);
-      const shopPaths = findByPath(routes, 'shop')!.children!.map(
-        (c) => c.path ?? 'index',
-      );
+      });
+      const shopPaths = findByPath(routes, 'shop')!.children!.map((c) => c.path ?? 'index');
       expect(shopPaths.indexOf('new')).toBeLessThan(shopPaths.indexOf(':id'));
     });
   });

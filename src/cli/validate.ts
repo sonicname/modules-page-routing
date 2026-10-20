@@ -67,12 +67,14 @@ function checkDuplicatePaths(
       const fullPath = node.index
         ? base || '/'
         : node.path
-          ? base ? `${base}/${node.path}` : `/${node.path}`
+          ? base
+            ? `${base}/${node.path}`
+            : `/${node.path}`
           : base;
 
       // Only track leaf routes (no children or has index)
       if (!node.children || node.index) {
-        const existing = pathMap.get(fullPath) || [];
+        const existing = pathMap.get(fullPath) ?? [];
         existing.push(node.file);
         pathMap.set(fullPath, existing);
       }
@@ -98,25 +100,22 @@ function checkDuplicatePaths(
 }
 
 /** Detect conflicting dynamic segments in the same directory */
-function checkDynamicConflicts(
-  keys: string[],
-  results: ValidationResult[],
-): void {
+function checkDynamicConflicts(keys: string[], results: ValidationResult[]): void {
   // Group files by their directory (after pages/)
   const dirMap = new Map<string, string[]>();
 
   for (const key of keys) {
-    const match = key.match(/\/pages\/(.+)$/);
+    const match = /\/pages\/(.+)$/.exec(key);
     if (!match) continue;
 
-    const parts = match[1].split('/');
-    const fileName = parts.pop()!;
+    const parts = (match[1] ?? '').split('/');
+    const fileName = parts.pop() ?? '';
     const dir = parts.join('/') || '.';
 
     // Check if filename is a dynamic segment: [id].tsx or $id.tsx
-    const dynMatch = fileName.match(/^(?:\[[^\].]+\]|\$[\w-]+)\.(t|j)sx?$/);
+    const dynMatch = /^(?:\[[^\].]+\]|\$[\w-]+)\.(t|j)sx?$/.exec(fileName);
     if (dynMatch) {
-      const existing = dirMap.get(dir) || [];
+      const existing = dirMap.get(dir) ?? [];
       existing.push(key);
       dirMap.set(dir, existing);
     }
@@ -135,21 +134,16 @@ function checkDynamicConflicts(
 }
 
 /** Detect catch-all routes that shadow sibling routes */
-function checkCatchAllShadowing(
-  routes: RouteConfigNode[],
-  results: ValidationResult[],
-): void {
+function checkCatchAllShadowing(routes: RouteConfigNode[], results: ValidationResult[]): void {
   const check = (nodes: RouteConfigNode[], parentPath: string) => {
-    const catchAll = nodes.find(
-      (n) => n.path === '*' && !n.file?.includes('_not-found'),
-    );
+    const catchAll = nodes.find((n) => n.path === '*' && !n.file.includes('_not-found'));
     const siblings = nodes.filter((n) => n.path && n.path !== '*');
 
     if (catchAll && siblings.length > 0) {
       results.push({
         level: 'warn',
         rule: 'catchall-shadow',
-        message: `Catch-all route may shadow ${siblings.length} sibling route(s) under ${parentPath || '/'}`,
+        message: `Catch-all route may shadow ${String(siblings.length)} sibling route(s) under ${parentPath || '/'}`,
         files: [catchAll.file, ...siblings.map((s) => s.file)],
       });
     }
@@ -157,7 +151,9 @@ function checkCatchAllShadowing(
     for (const node of nodes) {
       if (node.children) {
         const path = node.path
-          ? parentPath ? `${parentPath}/${node.path}` : `/${node.path}`
+          ? parentPath
+            ? `${parentPath}/${node.path}`
+            : `/${node.path}`
           : parentPath;
         check(node.children, path);
       }
@@ -168,20 +164,17 @@ function checkCatchAllShadowing(
 }
 
 /** Check for _error/_loading without a _layout in the same scope */
-function checkOrphanSpecialFiles(
-  keys: string[],
-  results: ValidationResult[],
-): void {
+function checkOrphanSpecialFiles(keys: string[], results: ValidationResult[]): void {
   const layoutDirs = new Set<string>();
   const specialFiles: { file: string; dir: string; type: string }[] = [];
 
   for (const key of keys) {
-    const match = key.match(/\/pages\/(.+)$/);
+    const match = /\/pages\/(.+)$/.exec(key);
     if (!match) continue;
 
-    const pathAfterPages = match[1];
+    const pathAfterPages = match[1] ?? '';
     const parts = pathAfterPages.split('/');
-    const fileName = parts.pop()!;
+    const fileName = parts.pop() ?? '';
     const dir = parts.join('/') || '.';
 
     if (fileName === '_layout.tsx' || fileName === 'layout.tsx') {
@@ -190,10 +183,7 @@ function checkOrphanSpecialFiles(
       specialFiles.push({ file: key, dir, type: '_error.tsx' });
     } else if (fileName === '_loading.tsx' || fileName === 'loading.tsx') {
       specialFiles.push({ file: key, dir, type: '_loading.tsx' });
-    } else if (
-      fileName === '_hydrate-fallback.tsx' ||
-      fileName === 'hydrate-fallback.tsx'
-    ) {
+    } else if (fileName === '_hydrate-fallback.tsx' || fileName === 'hydrate-fallback.tsx') {
       specialFiles.push({ file: key, dir, type: '_hydrate-fallback.tsx' });
     }
   }
@@ -211,19 +201,16 @@ function checkOrphanSpecialFiles(
 }
 
 /** Check for modules with pages/ dir but no actual page files */
-function checkEmptyModules(
-  keys: string[],
-  results: ValidationResult[],
-): void {
+function checkEmptyModules(keys: string[], results: ValidationResult[]): void {
   const modulePages = new Map<string, number>();
 
   for (const key of keys) {
-    const match = key.match(/\/modules\/([^/]+)\/pages\//);
+    const match = /\/modules\/([^/]+)\/pages\//.exec(key);
     if (!match) continue;
 
-    const moduleName = match[1];
+    const moduleName = match[1] ?? '';
     const isSpecial = /_(?:layout|not-found|error|loading|hydrate-fallback)\.(t|j)sx?$/.test(key);
-    const count = modulePages.get(moduleName) || 0;
+    const count = modulePages.get(moduleName) ?? 0;
     modulePages.set(moduleName, count + (isSpecial ? 0 : 1));
   }
 
@@ -240,19 +227,15 @@ function checkEmptyModules(
 }
 
 /** Check for modules with layout but no index route */
-function checkMissingIndex(
-  keys: string[],
-  results: ValidationResult[],
-): void {
+function checkMissingIndex(keys: string[], results: ValidationResult[]): void {
   const moduleHasLayout = new Set<string>();
   const moduleHasIndex = new Set<string>();
 
   for (const key of keys) {
-    const match = key.match(/\/modules\/([^/]+)\/pages\/(.+)$/);
+    const match = /\/modules\/([^/]+)\/pages\/(.+)$/.exec(key);
     if (!match) continue;
 
-    const moduleName = match[1];
-    const remainder = match[2];
+    const [, moduleName = '', remainder = ''] = match;
 
     if (remainder === '_layout.tsx' || remainder === 'layout.tsx') {
       moduleHasLayout.add(moduleName);

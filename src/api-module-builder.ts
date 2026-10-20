@@ -1,9 +1,5 @@
 import type { RouteConfigNode } from './routes-builder.js';
-import {
-  apiSegmentsFromRest,
-  normalizeGlobKey,
-  sortApiRoutes,
-} from './_api-shared.js';
+import { apiSegmentsFromRest, normalizeGlobKey, sortApiRoutes } from './_api-shared.js';
 
 const MODULE_API_RE = /^modules\/([^/]+)\/api\/(.+)$/;
 const ROUTE_GROUP_RE = /^\([^)]+\)$/;
@@ -23,19 +19,17 @@ const ROUTE_GROUP_RE = /^\([^)]+\)$/;
  * - _prefix → parentless (stripped from URL)
  * - (group) folders → removed from path
  */
-export function buildApiModuleRouteConfig(
-  glob: Record<string, unknown>,
-): RouteConfigNode[] {
+export function buildApiModuleRouteConfig(glob: Record<string, unknown>): RouteConfigNode[] {
   const routes: RouteConfigNode[] = [];
 
   for (const key of Object.keys(glob)) {
     const rel = normalizeGlobKey(key);
 
-    const match = rel.match(MODULE_API_RE);
+    const match = MODULE_API_RE.exec(rel);
     if (!match) continue;
 
-    const moduleName = match[1];
-    const restSegments = apiSegmentsFromRest(match[2]);
+    const [, moduleName = '', rest = ''] = match;
+    const restSegments = apiSegmentsFromRest(rest);
 
     // Module name: strip parentless prefix, skip route groups
     const cleanModule = moduleName.startsWith('_')
